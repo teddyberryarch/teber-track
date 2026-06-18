@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>묻다</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root{
+    --bg:#0a0c10; --panel:#11151c; --line:#1e2530;
+    --txt:#e6ecf3; --muted:#7c8794; --dim:#4b5563;
+    --green:#3fb27f; --amber:#d99a3f; --red:#d9534f;
+    --hbm:#3a86ff; --hbf:#ff7a45;
+    --mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--txt);
+    font-family:'Noto Sans KR',sans-serif;font-weight:400;
+    min-height:100vh;padding:0 20px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:460px;margin:0 auto;padding:54px 0 60px}
+
+  .top{font-family:var(--mono);font-size:13px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:54px}
+
+  /* ── 신호등 (메인) ── */
+  .signal{display:flex;flex-direction:column;align-items:center;margin-bottom:14px}
+  .orb{
+    width:150px;height:150px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;margin-bottom:30px;
+    transition:all 1s ease;
+  }
+  .orb::before{
+    content:'';position:absolute;inset:-18px;border-radius:50%;
+    opacity:.16;filter:blur(22px);background:inherit;
+  }
+  .orb .face{font-size:46px;line-height:1}
+  .orb.green{background:var(--green)}
+  .orb.amber{background:var(--amber)}
+  .orb.red{background:var(--red)}
+  .orb.loading{background:var(--dim)}
+
+  .status{font-size:23px;font-weight:500;letter-spacing:-.01em;margin-bottom:8px;text-align:center}
+  .status-sub{font-size:15px;color:var(--muted);text-align:center;line-height:1.7;max-width:340px}
+
+  /* ── 이정표 위치 ── */
+  .section{margin-top:46px}
+  .sec-label{font-family:var(--mono);font-size:13px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--dim);margin-bottom:16px}
+
+  .milestone{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:22px;
+  }
+  .ms-step{display:flex;align-items:baseline;gap:10px;margin-bottom:18px}
+  .ms-num{font-family:var(--mono);font-size:38px;font-weight:500;color:var(--txt);line-height:1}
+  .ms-unit{font-size:16px;color:var(--muted)}
+  .ms-peak{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--dim)}
+
+  .track{height:8px;background:#0a0c10;border-radius:5px;overflow:hidden;border:1px solid var(--line)}
+  .fill{height:100%;background:linear-gradient(90deg,var(--hbm),var(--hbf));transition:width 1s ease;border-radius:5px}
+  .track-cap{font-size:13px;color:var(--dim);margin-top:9px;font-family:var(--mono)}
+
+  /* ── 체크선 거리 ── */
+  .check{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:20px 22px;margin-top:14px;
+    display:flex;align-items:center;gap:16px;
+  }
+  .check-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0}
+  .check-dot.far{background:var(--green)}
+  .check-dot.mid{background:var(--amber)}
+  .check-dot.near{background:var(--red)}
+  .check-txt .ct1{font-size:16px;font-weight:500}
+  .check-txt .ct2{font-size:14px;color:var(--muted);margin-top:3px}
+
+  /* ── 레드플래그 ── */
+  .flags{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .flags h3{font-size:16px;font-weight:500;margin-bottom:6px}
+  .flags .fdesc{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:16px}
+  .flag{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px;color:var(--muted);align-items:flex-start}
+  .flag .box{width:16px;height:16px;border:1.5px solid var(--dim);border-radius:4px;flex-shrink:0;margin-top:3px}
+  .flag b{color:var(--txt);font-weight:500}
+  .flag-rule{font-size:14px;color:var(--dim);margin-top:14px;line-height:1.6}
+
+  /* ── 룰 요약 ── */
+  .rules{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .rules h3{font-size:16px;font-weight:500;margin-bottom:14px}
+  .r{display:flex;gap:11px;font-size:14.5px;color:var(--muted);padding:7px 0;line-height:1.55}
+  .r span{color:var(--hbf)}
+
+  .foot{margin-top:30px;text-align:center;font-size:13px;color:var(--dim);line-height:1.7;font-family:var(--mono)}
+  .foot .big{font-family:'Noto Sans KR';font-size:15px;color:var(--muted);letter-spacing:.04em;margin-bottom:10px}
+
+  a.thesis{display:block;text-align:center;margin-top:20px;font-size:14px;color:var(--muted);
+    text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:13px;transition:.2s}
+  a.thesis:hover{border-color:var(--hbf);color:var(--txt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">묻다 · 메모리 슈퍼사이클</div>
+
+  <div class="signal">
+    <div class="orb loading" id="orb"><span class="face" id="face">···</span></div>
+    <div class="status" id="status">불러오는 중</div>
+    <div class="status-sub" id="statusSub">시세를 확인하고 있습니다</div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">이정표</div>
+    <div class="milestone">
+      <div class="ms-step">
+        <span class="ms-num" id="msNum">·</span>
+        <span class="ms-unit">단계</span>
+        <span class="ms-peak" id="msPeak"></span>
+      </div>
+      <div class="track"><div class="fill" id="fill" style="width:0%"></div></div>
+      <div class="track-cap" id="trackCap">다음 이정표까지</div>
+    </div>
+  </div>
+
+  <div class="check" id="checkBox">
+    <div class="check-dot far" id="checkDot"></div>
+    <div class="check-txt">
+      <div class="ct1" id="checkT1">체크선까지</div>
+      <div class="ct2" id="checkT2"></div>
+    </div>
+  </div>
+
+  <div class="flags">
+    <h3>점검할 때 — 가격이 아니라 전제</h3>
+    <div class="fdesc">분기에 한 번, 유튜브·뉴스로 어렴풋이. 아래 중 셋 이상 겹치면 탈출을 고려한다.</div>
+    <div class="flag"><span class="box"></span><div><b>메모리 감산 발표</b> — 3사 중 한 곳이라도 공급 줄인다는 신호</div></div>
+    <div class="flag"><span class="box"></span><div><b>DRAM·NAND 가격 하락 전환</b> — 고정거래가가 추세적으로 꺾임</div></div>
+    <div class="flag"><span class="box"></span><div><b>AI capex 둔화</b> — 빅테크 투자 삭감, 거품론이 주류로</div></div>
+    <div class="flag"><span class="box"></span><div><b>삼성 HBF 물량 장악</b> — 샌디 약자 확정 → 비중 조정 고려</div></div>
+    <div class="flag"><span class="box"></span><div><b>공급 급증 임박</b> — 마이크론 ID1·하닉 용인 가동 (2027 정점 신호)</div></div>
+    <div class="flag-rule">하루 급락·루머·FOMC 단발 반응은 무시. <b style="color:var(--txt)">공식 발표 + 지속성</b>일 때만 진짜다.</div>
+  </div>
+
+  <div class="rules">
+    <h3>초심</h3>
+    <div class="r"><span>·</span> 평소엔 안 본다. 이 페이지만, 가끔.</div>
+    <div class="r"><span>·</span> 점검은 매도가 아니다. 전제가 깨졌나만 본다.</div>
+    <div class="r"><span>·</span> 조정(−20~40%)은 예상된 것. 안 던진다.</div>
+    <div class="r"><span>·</span> 가격 빠졌다고 충동 손절 X · 올랐다고 추격 X.</div>
+    <div class="r"><span>·</span> 생활비는 건드리지 않는다.</div>
+    <div class="r"><span>·</span> 진짜 에너지는 베러비전. 투자는 봉인.</div>
+  </div>
+
+  <a class="thesis" href="thesis.html">왜 이 베팅을 하는가 — 다짐 읽기 →</a>
+
+  <div class="foot">
+    <div class="big">애매해야 길게 간다</div>
+    봉인 2026.06.19 · 개봉 2027.06.19<br>
+    정확한 금액은 일부러 숨겼습니다
+  </div>
+</div>
+
+<script>
+const FACE = {GREEN:"🟢", AMBER:"🟡", RED:"🔴"};
+const STATUS = {
+  GREEN: {t:"안전지대", s:"전진 중입니다. 신경 끄고 베러비전 하세요."},
+  AMBER: {t:"체크선 근접", s:"안전지대 하단. 전제만 가볍게 확인."},
+  RED:   {t:"체크선 — 점검", s:"자동 손절 아님. 전제가 깨졌나 봅니다."},
+};
+const DIST = {
+  far:  {dot:"far",  t1:"체크선까지 — 여유",   t2:"위험선과 충분히 멉니다"},
+  mid:  {dot:"mid",  t1:"체크선까지 — 보통",   t2:"안전지대 안, 거리 좁혀짐"},
+  near: {dot:"near", t1:"체크선까지 — 가까움", t2:"점검 준비. 전제 확인할 때"},
+};
+
+async function load(){
+  let d;
+  try{
+    const res = await fetch("data.json?t="+Date.now());
+    d = await res.json();
+  }catch(e){
+    document.getElementById("status").textContent = "대기 중";
+    document.getElementById("statusSub").textContent = "봇 첫 실행 전일 수 있습니다";
+    return;
+  }
+  const zone = d.zone || "GREEN";
+  const orb = document.getElementById("orb");
+  orb.className = "orb " + zone.toLowerCase();
+  document.getElementById("face").textContent = FACE[zone] || "🟢";
+  document.getElementById("status").textContent = STATUS[zone].t;
+  document.getElementById("statusSub").textContent = STATUS[zone].s;
+
+  // 이정표
+  document.getElementById("msNum").textContent = d.step ?? 0;
+  const peakStep = d.peak_step ?? d.step ?? 0;
+  if(peakStep > (d.step ?? 0)){
+    document.getElementById("msPeak").textContent = "최고 " + peakStep + "단계 찍음";
+  }
+  const prog = Math.round((d.ms_progress ?? 0) * 100);
+  document.getElementById("fill").style.width = prog + "%";
+  document.getElementById("trackCap").textContent = "다음 이정표까지 " +
+    (prog < 33 ? "초입" : prog < 66 ? "절반쯤" : "거의 도달");
+
+  // 체크선 거리
+  const dist = DIST[d.dist || "far"];
+  document.getElementById("checkDot").className = "check-dot " + dist.dot;
+  document.getElementById("checkT1").textContent = dist.t1;
+  document.getElementById("checkT2").textContent = dist.t2;
+
+  // 누락 종목 표시 (시세 일부 실패 시)
+  if(d.missing && d.missing.length){
+    document.getElementById("statusSub").textContent += " (일부 시세 지연: "+d.missing.join(", ")+")";
+  }
+}
+load();
+setInterval(load, 300000); // 5분
+</script>
+</body>
+</html>

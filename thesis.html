@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>메모리 슈퍼사이클 — 1년 묻지마 투자 다짐</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --ink:#0b0e13;
+    --panel:#11151d;
+    --panel2:#161b25;
+    --line:#222b38;
+    --txt:#e8ecf2;
+    --muted:#9aa6b6;
+    --dim:#6b7686;
+    --hbm:#3a86ff;     /* 디램/HBM - 블루 */
+    --hbf:#ff7a45;     /* 낸드/HBF - 오렌지 */
+    --logic:#8b5cf6;   /* 로직 - 퍼플 */
+    --gain:#ff4d5e;    /* 한국식: 상승 빨강 */
+    --gold:#e9c46a;
+    --mono:'JetBrains Mono',monospace;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--ink);
+    color:var(--txt);
+    font-family:'Noto Sans KR',sans-serif;
+    font-weight:400;
+    font-size:17px;
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+
+  .wrap{max-width:880px;margin:0 auto;padding:0 22px}
+
+  /* ===== HERO ===== */
+  .hero{
+    min-height:92vh;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:80px 0 60px;
+    position:relative;
+    border-bottom:1px solid var(--line);
+  }
+  .hero .eyebrow{
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.28em;
+    text-transform:uppercase;
+    color:var(--dim);
+    margin-bottom:30px;
+  }
+  .hero h1{
+    font-weight:300;
+    font-size:clamp(40px,8.5vw,84px);
+    line-height:1.04;
+    letter-spacing:-.02em;
+    margin-bottom:34px;
+  }
+  .hero h1 b{font-weight:700;color:var(--hbf)}
+  .hero h1 .blue{font-weight:700;color:var(--hbm)}
+  .hero .lede{
+    font-size:19px;
+    color:var(--muted);
+    max-width:600px;
+    line-height:1.8;
+  }
+  .hero .lede strong{color:var(--txt);font-weight:500}
+
+  .ticker-row{
+    display:flex;gap:26px;margin-top:48px;flex-wrap:wrap;
+    font-family:var(--mono);
+  }
+  .ticker{font-size:14px;color:var(--dim);letter-spacing:.04em}
+  .ticker b{color:var(--gain);font-weight:700}
+
+  .scrollcue{
+    position:absolute;bottom:26px;left:50%;transform:translateX(-50%);
+    font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--dim);
+    animation:bob 2.4s ease-in-out infinite;
+  }
+  @keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,7px)}}
+
+  /* ===== SECTION ===== */
+  section{padding:64px 0;border-bottom:1px solid var(--line)}
+  .sec-eyebrow{
+    font-family:var(--mono);
+    font-size:13px;
+    letter-spacing:.24em;
+    text-transform:uppercase;
+    color:var(--hbf);
+    margin-bottom:18px;
+    display:flex;align-items:center;gap:12px;
+  }
+  .sec-eyebrow::before{
+    content:'';width:26px;height:1px;background:var(--hbf);display:inline-block;
+  }
+  h2{
+    font-weight:400;
+    font-size:clamp(28px,5vw,44px);
+    line-height:1.15;
+    letter-spacing:-.01em;
+    margin-bottom:28px;
+  }
+  h3{
+    font-weight:500;
+    font-size:21px;
+    margin:36px 0 14px;
+    letter-spacing:-.01em;
+  }
+  p{margin-bottom:18px;color:var(--muted)}
+  p strong{color:var(--txt);font-weight:500}
+  .lbl{font-family:var(--mono);font-size:15px;color:var(--dim);letter-spacing:.04em}
+
+  /* ===== THESIS LADDER ===== */
+  .ladder{margin:34px 0 10px}
+  .rung{
+    display:flex;align-items:baseline;gap:18px;
+    padding:16px 0;border-bottom:1px solid var(--line);
+  }
+  .rung:last-child{border-bottom:none}
+  .rung .n{
+    font-family:var(--mono);font-size:14px;color:var(--dim);
+    min-width:34px;letter-spacing:.05em;
+  }
+  .rung .t{font-size:18px;color:var(--txt);font-weight:500}
+  .rung .d{font-size:15px;color:var(--dim);margin-left:auto;font-family:var(--mono)}
+  .rung.top .t{color:var(--hbf)}
+
+  /* ===== ALLOCATION BARS ===== */
+  .alloc{margin:30px 0}
+  .bar-track{
+    display:flex;height:46px;border-radius:7px;overflow:hidden;
+    border:1px solid var(--line);margin-bottom:22px;
+  }
+  .seg{display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+    font-size:14px;font-weight:700;color:#0b0e13;transition:flex .6s ease}
+  .seg.hbm{background:var(--hbm)}
+  .seg.hbf{background:var(--hbf)}
+  .seg.logic{background:var(--logic)}
+  .legend{display:flex;gap:24px;flex-wrap:wrap}
+  .leg{display:flex;align-items:center;gap:9px;font-size:15px;color:var(--muted)}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .dot.hbm{background:var(--hbm)}.dot.hbf{background:var(--hbf)}.dot.logic{background:var(--logic)}
+
+  /* ===== HOLDINGS TABLE ===== */
+  .tbl{width:100%;border-collapse:collapse;margin:24px 0;font-size:15px}
+  .tbl th{
+    font-family:var(--mono);font-size:13px;letter-spacing:.06em;
+    color:var(--dim);text-transform:uppercase;text-align:left;
+    padding:10px 12px;border-bottom:1px solid var(--line);font-weight:500;
+  }
+  .tbl td{padding:13px 12px;border-bottom:1px solid var(--line);color:var(--muted)}
+  .tbl td.tk{font-family:var(--mono);color:var(--txt);font-weight:500}
+  .tbl td.num{font-family:var(--mono);text-align:right}
+  .tag{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:4px;letter-spacing:.03em}
+  .tag.hbm{background:rgba(58,134,255,.14);color:var(--hbm)}
+  .tag.hbf{background:rgba(255,122,69,.14);color:var(--hbf)}
+  .tag.logic{background:rgba(139,92,246,.14);color:var(--logic)}
+
+  /* ===== CARD GRID ===== */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:28px 0}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;padding:22px;
+  }
+  .card .k{font-family:var(--mono);font-size:13px;letter-spacing:.06em;
+    color:var(--hbf);text-transform:uppercase;margin-bottom:12px}
+  .card h4{font-size:17px;font-weight:600;color:var(--txt);margin-bottom:8px}
+  .card p{font-size:15px;margin-bottom:0;line-height:1.7}
+
+  /* ===== Q&A LEARNINGS ===== */
+  .qa{border-left:2px solid var(--line);padding-left:22px;margin:22px 0}
+  .qa .q{font-size:17px;color:var(--txt);font-weight:500;margin-bottom:8px}
+  .qa .a{font-size:15px;color:var(--muted);line-height:1.72}
+  .qa .a b{color:var(--hbf);font-weight:500}
+  .qa+.qa{margin-top:30px}
+
+  /* ===== RULES (초심) ===== */
+  .rules{margin:30px 0}
+  .rule{
+    display:flex;gap:18px;padding:20px;margin-bottom:13px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    align-items:flex-start;
+  }
+  .rule .num{
+    font-family:var(--mono);font-size:22px;font-weight:700;
+    color:var(--hbf);min-width:38px;line-height:1.2;
+  }
+  .rule .body h4{font-size:17px;font-weight:600;margin-bottom:6px;color:var(--txt)}
+  .rule .body p{font-size:15px;margin-bottom:0;line-height:1.7}
+
+  /* ===== GOAL ===== */
+  .goal{
+    background:linear-gradient(160deg,var(--panel2),var(--panel));
+    border:1px solid var(--line);border-radius:14px;
+    padding:40px 30px;margin:30px 0;text-align:center;
+  }
+  .goal .from{font-family:var(--mono);font-size:15px;color:var(--muted);letter-spacing:.04em}
+  .goal .arrow{font-size:26px;color:var(--dim);margin:14px 0}
+  .goal .to{
+    font-family:var(--mono);font-weight:700;
+    font-size:clamp(44px,11vw,76px);color:var(--gain);
+    letter-spacing:-.02em;line-height:1;
+  }
+  .goal .to small{font-size:.4em;color:var(--muted);font-weight:400;display:block;margin-top:14px;letter-spacing:.02em}
+  .goal .meta{margin-top:24px;font-size:15px;color:var(--dim);font-family:var(--mono)}
+
+  /* ===== CALLOUT ===== */
+  .callout{
+    background:rgba(255,122,69,.06);
+    border:1px solid rgba(255,122,69,.22);
+    border-radius:10px;padding:22px;margin:26px 0;
+  }
+  .callout p{margin-bottom:0;color:var(--txt);font-size:16px}
+  .callout p strong{color:var(--hbf)}
+
+  /* ===== TIMELINE ===== */
+  .tl{margin:28px 0}
+  .tl-item{display:flex;gap:20px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .tl-item:last-child{border-bottom:none}
+  .tl-date{font-family:var(--mono);font-size:14px;color:var(--hbf);min-width:110px;font-weight:500}
+  .tl-body{font-size:15px;color:var(--muted)}
+  .tl-body b{color:var(--txt);font-weight:500}
+
+  /* footer */
+  footer{padding:50px 0 70px;text-align:center}
+  footer .sig{font-family:var(--mono);font-size:14px;color:var(--dim);letter-spacing:.1em}
+  footer .date{font-size:13px;color:var(--dim);margin-top:10px}
+
+  .disc{font-size:13px;color:var(--dim);margin-top:18px;line-height:1.7}
+
+  /* reveal */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){
+    .reveal{opacity:1;transform:none;transition:none}
+    .scrollcue{animation:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">기록 · 2026.06.18 · 1년 묻지마 투자</div>
+    <h1>확신은 공부에서<br>나온다. <span class="blue">HBM</span>과 <b>HBF</b>,<br>그 사이클에 건다.</h1>
+    <p class="lede">코인에서 뺀 돈을 메모리로 옮긴 건 충동이 아니다. <strong>AI 슈퍼사이클 → 메모리 → 레버리지</strong>로 이어지는 확신의 사다리를 직접 검증하고 내린 결정이다. 이 문서는 1년 뒤의 나를 위한 것이다 — 빠질 때 흔들리면, 여기로 돌아온다.</p>
+    <div class="ticker-row">
+      <span class="ticker">SNXX <b>HBF</b></span>
+      <span class="ticker">하닉레버 <b>HBM</b></span>
+      <span class="ticker">MUU <b>HBM</b></span>
+      <span class="ticker">SOXL <b>로직</b></span>
+      <span class="ticker">SNDU <b>실험</b></span>
+    </div>
+  </div>
+  <div class="scrollcue">SCROLL ↓</div>
+</div>
+
+<!-- 1. 확신의 사다리 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">01 — 확신의 위계</div>
+    <h2>왜 메모리인가</h2>
+    <p>모든 베팅은 확신의 순서를 따른다. 위로 갈수록 의심의 여지가 없다. 아래는 그 사다리이고, 자금은 위에서부터 배치한다.</p>
+    <div class="ladder">
+      <div class="rung top">
+        <span class="n">01</span>
+        <span class="t">AI</span>
+        <span class="d">시대 전제 · 의심 없음</span>
+      </div>
+      <div class="rung top">
+        <span class="n">02</span>
+        <span class="t">메모리</span>
+        <span class="d">AI = 데이터 = 메모리 폭식</span>
+      </div>
+      <div class="rung">
+        <span class="n">03</span>
+        <span class="t">하닉 &gt; 삼성</span>
+        <span class="d">HBM 1위 · ADR 촉매</span>
+      </div>
+      <div class="rung">
+        <span class="n">04</span>
+        <span class="t">미장 &gt; 국장</span>
+        <span class="d">속도 · 유동성 · 밸류</span>
+      </div>
+    </div>
+    <div class="callout">
+      <p><strong>핵심 한 줄.</strong> 메모리는 진입장벽(3사 95% 과점)도 높고 밸류(하닉 Forward PER 5.9)도 싸다. 슈퍼사이클 + 저평가 + 독점 — 이 조합이 흔들릴 때 버틸 안전판이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 2. HBM vs HBF -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">02 — 기술 축</div>
+    <h2>HBM과 HBF, 두 축에 반반</h2>
+    <p><strong>HBM</strong>은 빠르고 작은 메모리 — AI의 <strong>학습</strong>. 디램 3사(하닉·삼성·마이크론)가 과점한다. <strong>HBF</strong>는 약간 느려도 8배 큰 용량 — AI의 <strong>추론</strong>. 낸드를 쌓아 HBM 옆에 더한다. 대체가 아니라 <strong>계층 추가</strong>다.</p>
+
+    <h3>왜 지금 HBF인가</h3>
+    <p>HBM이 2015년 나왔을 땐 GPU도 수요도 준비가 안 돼 7~8년이 걸렸다. 지금은 다르다. AI 추론이 폭발했고, 인프라는 성숙했고, "메모리 용량 부족"은 실재하는 병목이다. <strong>풀어야 할 문제가 이미 존재한다</strong> — 그래서 HBF는 HBM보다 빨리 채택될 수 있다. 단, GPU 차세대 설계(2027~2028)가 HBF를 받아들여야 본격화된다.</p>
+
+    <div class="alloc">
+      <div class="lbl" style="margin-bottom:12px">목표 배분 — 로직(SOXL) 단독 분리, 나머지 HBM:HBF 반반</div>
+      <div class="bar-track">
+        <div class="seg hbm" style="flex:49">HBM 49</div>
+        <div class="seg hbf" style="flex:41">HBF 41</div>
+        <div class="seg logic" style="flex:10">10</div>
+      </div>
+      <div class="legend">
+        <span class="leg"><span class="dot hbm"></span>HBM · 하닉레버 + MUU</span>
+        <span class="leg"><span class="dot hbf"></span>HBF · SNXX + SNDU</span>
+        <span class="leg"><span class="dot logic"></span>로직 · SOXL</span>
+      </div>
+    </div>
+    <p class="disc">※ 로직(SOXL)을 단독으로 빼면 HBM:HBF = 54:46, 의도한 반반에 수렴. SNDU는 비트에서 옮긴 자금으로 따로 관리하되 HBF 축을 보강한다.</p>
+  </div>
+</section>
+
+<!-- 3. 포트폴리오 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">03 — 최종 포트폴리오</div>
+    <h2>무엇을, 왜 들고 있나</h2>
+    <table class="tbl">
+      <thead>
+        <tr><th>종목</th><th>축</th><th>역할</th><th style="text-align:right">비중</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="tk">SNXX</td><td><span class="tag hbf">HBF</span></td><td>샌디 2x · 낸드/HBF 순수 베팅</td><td class="num">36%</td></tr>
+        <tr><td class="tk">하닉레버</td><td><span class="tag hbm">HBM</span></td><td>HBM 1위 · ADR 리레이팅 대기</td><td class="num">31%</td></tr>
+        <tr><td class="tk">MUU</td><td><span class="tag hbm">HBM</span></td><td>마이크론 2x · 디램 종합 · 실적 베팅</td><td class="num">20%</td></tr>
+        <tr><td class="tk">SOXL</td><td><span class="tag logic">로직</span></td><td>반도체 3x · 섹터 전체 노출</td><td class="num">11%</td></tr>
+        <tr><td class="tk">SNDU</td><td><span class="tag hbf">HBF</span></td><td>샌디 2x · 비트 실험 · 따로 관리</td><td class="num">별도</td></tr>
+      </tbody>
+    </table>
+    <p class="disc">100% 레버리지 · 100% 반도체 메모리 중심. 디램(하닉+마이크론) 절반, 낸드(샌디) 1/3, 로직 1/10.</p>
+  </div>
+</section>
+
+<!-- 4. 샌디 양날의 검 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">04 — 알고 베팅한다</div>
+    <h2>샌디스크: 양날의 검</h2>
+    <p>공부 끝에 가장 중요하게 깨달은 것. 샌디는 "싼 메모리"가 아니라 <strong>HBF 기대가 선반영된 비싼 성장주</strong>(Forward PER 27)다. 그래서 폭발력이 크지만, 그만큼 위험하다.</p>
+    <div class="grid">
+      <div class="card">
+        <div class="k">강점</div>
+        <h4>순수 HBF 베팅</h4>
+        <p>낸드 노출 100%. 낸드 호황을 가장 크게 흡수해 분사 후 50배 폭등. HBF 표준을 하닉과 공동 주도.</p>
+      </div>
+      <div class="card">
+        <div class="k">약점</div>
+        <h4>물량의 약자</h4>
+        <p>낸드 점유율 꼴찌(10~14%). 키옥시아와 합작이라 단독 증설 불가. 자체 팹을 가진 삼성이 물량으로 위협.</p>
+      </div>
+      <div class="card">
+        <div class="k">기회</div>
+        <h4>2027 선점 창</h4>
+        <p>삼성이 지금은 HBM에 집중 — HBF는 후순위. 그 사이 샌디·하닉이 선점할 시간이 있다.</p>
+      </div>
+      <div class="card">
+        <div class="k">위험</div>
+        <h4>순도 = 변동성</h4>
+        <p>올라갈 때 제일 크게 오른 만큼, 빠질 때도 제일 크게 빠진다. 2x 레버면 조정 시 -60%도 가능.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. 공부한 것 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">05 — 공부 노트</div>
+    <h2>흔들릴 때 다시 읽을 것</h2>
+
+    <div class="qa">
+      <div class="q">레버리지는 왜 추세에 강한가?</div>
+      <div class="a">decay(음의 복리)는 횡보·하락에서만 작동한다. 강한 상승 추세에선 <b>양의 복리</b>가 단순 배수를 초과한다. 같은 동전의 양면 — 레버는 방향이 아니라 <b>추세의 강도</b>에 보상한다. 운용보수(연 1%)는 하루 등락(±7%)에 묻히는 노이즈.</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">"몇 배냐"가 함정인 이유</div>
+      <div class="a">MUU(2x 마이크론) 1년 +3,369%가 SOXL(3x 반도체) +867%를 이겼다. 기초자산의 폭발력이 배수보다 중요하다. <b>단일 강세주에 건 2배 &gt; 희석된 지수에 건 3배.</b></div>
+    </div>
+
+    <div class="qa">
+      <div class="q">진짜 병목은 제조다</div>
+      <div class="a">HBM 부족은 설계가 아니라 <b>생산능력</b>의 한계다. 팹 증설은 3~4년. 그래서 "누가 더 많이, 싸게 찍어내냐"가 메모리 승부를 가른다. 이 관점에서 샌디는 약자, 삼성이 강자.</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">점유율 꼴찌 샌디가 왜 제일 올랐나</div>
+      <div class="a">크기가 아니라 <b>노출 순도(낸드 100%) + 낮은 출발점 + HBF 기대 응축</b> 때문. 삼성이 덜 오른 건 분산의 대가, 샌디가 폭등한 건 집중의 보상. 양날의 검.</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">에이전틱 AI는 메모리도 폭식한다</div>
+      <div class="a">에이전트가 도구 호출·메모리 조회·상태 관리를 반복 — CPU 병목이 생기지만, <b>메모리 수요도 함께 폭증</b>한다. 메모리 베팅은 에이전틱 시대에도 간접 수혜.</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">밸류는 Forward로 본다</div>
+      <div class="a">메모리는 사이클주라 Trailing PER이 피크에 낮고 바닥에 높은 착시가 있다. <b>하닉 Forward 5.9, 마이크론 7.8</b> — 이익이 주가보다 빨리 늘어 싸다. 샌디·마벨·브로드컴은 27~36으로 비싸다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. 타임라인 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">06 — 점검 캘린더</div>
+    <h2>가격은 안 본다. 이것만 본다</h2>
+    <p>점검 ≠ 매도. 분기마다 "메모리 사이클이 살아있나"만 확인한다. 전제가 깨지지 않는 한 판다는 선택지는 없다.</p>
+    <div class="tl">
+      <div class="tl-item">
+        <span class="tl-date">2026 하반기</span>
+        <span class="tl-body"><b>샌디 첫 HBF 샘플.</b> 가장 큰 단기 트리거. 성능이 주장대로면 폭발, 미달이면 실망. HBF 전제의 첫 실물 검증.</span>
+      </div>
+      <div class="tl-item">
+        <span class="tl-date">2026 말</span>
+        <span class="tl-body"><b>하닉 AI-NAND 첫 샘플</b> · 파일럿 라인 가동. 엔비디아·하이퍼스케일러의 HBF 지원 발표가 나오는지 주시.</span>
+      </div>
+      <div class="tl-item">
+        <span class="tl-date">2027 초</span>
+        <span class="tl-body"><b>첫 AI 추론 디바이스.</b> HBF가 실제로 작동함을 증명. GPU 차세대 설계가 HBF를 받는지가 관건.</span>
+      </div>
+      <div class="tl-item">
+        <span class="tl-date">분기마다</span>
+        <span class="tl-body">마이크론 실적 · 샌디 실적의 <b>HBF 진행 언급</b>만 확인. 가격 등락은 노이즈.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 7. 초심 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">07 — 초심</div>
+    <h2>1년을 버티는 네 가지 약속</h2>
+    <div class="rules">
+      <div class="rule">
+        <span class="num">1</span>
+        <div class="body">
+          <h4>안 본다 — 진짜로</h4>
+          <p>매일 보면 등락에 멘탈이 흔들려 결국 만진다. 알림은 끈다. 분기에 한 번, 사이클 점검만.</p>
+        </div>
+      </div>
+      <div class="rule">
+        <span class="num">2</span>
+        <div class="body">
+          <h4>점검은 매도가 아니다</h4>
+          <p>빠졌다고 파는 게 아니라, 전제(슈퍼사이클)가 깨졌나만 본다. 메모리 사이클이 살아있으면 들고 간다.</p>
+        </div>
+      </div>
+      <div class="rule">
+        <span class="num">3</span>
+        <div class="body">
+          <h4>조정은 반드시 온다</h4>
+          <p>1년 안에 -20~30%는 거의 확실. 레버면 -40%도. 그때 안 던지는 게 전부다. 그래서 생활비는 따로 뺐다.</p>
+        </div>
+      </div>
+      <div class="rule">
+        <span class="num">4</span>
+        <div class="body">
+          <h4>확신은 공부에서 나왔다</h4>
+          <p>그냥 묻은 게 아니다. 왜 메모리인지 논리가 있다. 빠질 때 "이건 일시적"이라 말할 수 있는 근거 — 그게 이 문서다.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8. 행동 지침 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">08 — 행동 지침</div>
+    <h2>봉인하되, 신호에는 반응한다</h2>
+    <p>안 보는 게 목표지만 눈 감는 건 아니다. 정해둔 신호에만 반응한다 — 충동이 아니라 규칙으로.</p>
+
+    <h3>손절선 — 6,000만</h3>
+    <p>현 시점 평가액은 1.2억이지만, 기억은 단순하게: <strong>6,000만 닿으면 멈춘다.</strong> 거기까지 빠지려면 메모리 본주가 -20% 넘게 폭락해야 한다 — 정상 조정이 아니라 <strong>사이클을 의심해야 할 수준</strong>이다. 그러니 6,000은 자동 손절이 아니라 <strong>긴급 점검 트리거</strong>다. 이유를 본다: 전제가 깨졌으면(감산·수요둔화·HBF 무산) 자른다. 일시적 패닉(매크로·FOMC)이면 버틴다. <strong>단, 전제가 깨졌는데 "조금만 더"는 금지.</strong></p>
+
+    <h3>고점을 높이는가 — 단계적으로 올린다</h3>
+    <p>6,000 고정은 초기 버티기엔 완벽하지만, 사이클이 한참 올라 2억이 됐는데도 6,000이면 번 것을 다 토해낼 때까지 안 잘린다. 그래서 <strong>이정표마다 손절선을 한 칸씩 올린다.</strong> 매일 트레일링(복잡)도, 영원히 고정(수익 못 지킴)도 아니다.</p>
+    <table class="tbl">
+      <thead><tr><th>평가액 이정표</th><th>손절선 상향</th></tr></thead>
+      <tbody>
+        <tr><td class="tk">지금 ~ 초기</td><td>6,000만 고정</td></tr>
+        <tr><td class="tk">1.5억 도달</td><td>→ 9,000만</td></tr>
+        <tr><td class="tk">2.0억 도달</td><td>→ 1.3억</td></tr>
+        <tr><td class="tk">사이클 후반</td><td>익절 모드 전환</td></tr>
+      </tbody>
+    </table>
+
+    <h3>점검 주기 — 초기 촘촘, 후기 느슨</h3>
+    <p>쿠션이 얇은 <strong>첫 1~2달은 월 1회</strong>, 평가액이 올라 손절선이 멀어지면 <strong>분기 1회</strong>로. 1년에 한 번은 비현실적이고 매일은 멘탈을 망친다. 점검은 가격이 아니라 <strong>전제(사이클이 살아있나)</strong>를 본다.</p>
+
+    <div class="callout">
+      <p><strong>걸린 돈의 크기.</strong> 원금 8,600만에서 손절선 6,000만까지 — 최대 손실은 약 3,000만. 그 3,000을 걸고 슈퍼사이클 전체를 노린다. 아래는 막혀 있고 위는 열려 있다. 이미 번 +30%는 시장이 준 쿠션이다.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9. 목표 -->
+<section style="border-bottom:none">
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">09 — 성공의 정의</div>
+    <h2>금액이 아니라 사이클이 목표다</h2>
+    <p>1.2억은 목표가 아니라 이미 지나온 점이다. 레버를 한 이유는 수익 최대화 — 그러니 진짜 목표는 금액이 아니라 <strong>메모리 슈퍼사이클을 정점까지 타는 것</strong>이다.</p>
+    <div class="goal">
+      <div class="from">원금 8,600만 · 최대 위험 −3,000만</div>
+      <div class="arrow">↓</div>
+      <div class="to">사이클 정점<small>2027 중반 공급 급증 전까지 · 단계적 익절</small></div>
+      <div class="meta">마이크론 ID1(2027 하)·하닉 용인(2027 초)·삼성 P5(2028)</div>
+    </div>
+    <div class="callout">
+      <p><strong>내리는 법.</strong> 정점은 아무도 못 맞춘다. 그러니 한 번에 빼지 않고 사이클 후반(2027 중반)에 <strong>나눠서 익절</strong>한다 — 정점을 못 맞춰도 일부는 건진다. 레버는 실현 전엔 내 것이 아니다.</p>
+    </div>
+    <div class="goal" style="margin-top:18px;background:linear-gradient(160deg,rgba(255,122,69,.08),var(--panel))">
+      <div class="from">봉인</div>
+      <div class="arrow">🔒</div>
+      <div class="to" style="font-size:clamp(32px,8vw,52px);color:var(--gold)">2027.06.19<small>생일에 개봉 · 1년 결산</small></div>
+      <div class="meta">그 전엔 신호에만 반응 · 평소엔 안 본다</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="sig">그냥 살기 · 확신 있으면 레버 · 먹을 때 먹는다</div>
+    <div class="date">작성 2026.06.18 — 1년 뒤의 나에게</div>
+    <p class="disc" style="max-width:560px;margin:24px auto 0">이 문서는 투자 판단의 기록이자 다짐이며, 시장 상황과 전제가 바뀌면 갱신한다. 레버리지·집중 투자는 원금 손실 위험이 크다. 모든 책임은 나에게 있다.</p>
+  </div>
+</footer>
+
+<script>
+  const obs=new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');obs.unobserve(e.target)}})
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+
+</body>
+</html>
