@@ -1,10 +1,16 @@
 {
   "_config": {
     "start_value_krw": 0,
-    "milestone_growth": 0.30,
+    "milestone_growth": 0.3,
     "checkline_floor_krw": 60000000,
-    "checkline_trailing": 0.50,
-    "note": "start_value_krw는 내일 매수 완료 후 실제 시작 평가액(원화)을 넣는다. 0이면 봇이 현재 평가액을 시작점으로 자동 설정."
+    "guard1_drop": 0.25,
+    "guard2_drop": 0.4,
+    "guard3_drop": 0.5,
+    "sideways_days": 60,
+    "sideways_band": 0.92,
+    "heartbeat_every_runs": 14,
+    "underlying_drop_kr": 0.15,
+    "underlying_drop_us": 0.1
   },
   "holdings": {
     "hynix_lev": {
@@ -21,13 +27,6 @@
       "axis": "HBF",
       "shares": 633
     },
-    "sndu": {
-      "label": "SNDU",
-      "yf": "SNDU",
-      "ccy": "USD",
-      "axis": "HBF",
-      "shares": 0
-    },
     "muu": {
       "label": "MUU",
       "yf": "MUU",
@@ -41,6 +40,23 @@
       "ccy": "USD",
       "axis": "LOGIC",
       "shares": 28
+    }
+  },
+  "underlyings": {
+    "hynix": {
+      "label": "SK하이닉스",
+      "yf": "000660.KS",
+      "mkt": "KR"
+    },
+    "micron": {
+      "label": "마이크론",
+      "yf": "MU",
+      "mkt": "US"
+    },
+    "sandisk": {
+      "label": "샌디스크",
+      "yf": "SNDK",
+      "mkt": "US"
     }
   }
 }

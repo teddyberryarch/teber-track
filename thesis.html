@@ -30,8 +30,8 @@
     color:var(--txt);
     font-family:'Noto Sans KR',sans-serif;
     font-weight:400;
-    font-size:17px;
-    line-height:1.75;
+    font-size:18px;
+    line-height:1.78;
     -webkit-font-smoothing:antialiased;
     overflow-x:hidden;
   }
@@ -48,15 +48,16 @@
   }
   .hero .eyebrow{
     font-family:var(--mono);
-    font-size:13px;
-    letter-spacing:.28em;
+    font-size:14px;
+    font-weight:700;
+    letter-spacing:.22em;
     text-transform:uppercase;
     color:var(--dim);
     margin-bottom:30px;
   }
   .hero h1{
     font-weight:300;
-    font-size:clamp(40px,8.5vw,84px);
+    font-size:clamp(34px,6.5vw,58px);
     line-height:1.04;
     letter-spacing:-.02em;
     margin-bottom:34px;
@@ -64,8 +65,8 @@
   .hero h1 b{font-weight:700;color:var(--hbf)}
   .hero h1 .blue{font-weight:700;color:var(--hbm)}
   .hero .lede{
-    font-size:19px;
-    color:var(--muted);
+    font-size:20px;
+    color:var(--txt);
     max-width:600px;
     line-height:1.8;
   }
@@ -75,7 +76,7 @@
     display:flex;gap:26px;margin-top:48px;flex-wrap:wrap;
     font-family:var(--mono);
   }
-  .ticker{font-size:14px;color:var(--dim);letter-spacing:.04em}
+  .ticker{font-size:16px;font-weight:500;color:var(--muted);letter-spacing:.04em}
   .ticker b{color:var(--gain);font-weight:700}
 
   .scrollcue{
@@ -89,8 +90,9 @@
   section{padding:64px 0;border-bottom:1px solid var(--line)}
   .sec-eyebrow{
     font-family:var(--mono);
-    font-size:13px;
-    letter-spacing:.24em;
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:.18em;
     text-transform:uppercase;
     color:var(--hbf);
     margin-bottom:18px;
@@ -100,21 +102,21 @@
     content:'';width:26px;height:1px;background:var(--hbf);display:inline-block;
   }
   h2{
-    font-weight:400;
-    font-size:clamp(28px,5vw,44px);
+    font-weight:600;
+    font-size:clamp(26px,4vw,38px);
     line-height:1.15;
     letter-spacing:-.01em;
     margin-bottom:28px;
   }
   h3{
-    font-weight:500;
-    font-size:21px;
+    font-weight:700;
+    font-size:20px;
     margin:36px 0 14px;
     letter-spacing:-.01em;
   }
-  p{margin-bottom:18px;color:var(--muted)}
+  p{margin-bottom:18px;color:#b6c0cd}
   p strong{color:var(--txt);font-weight:500}
-  .lbl{font-family:var(--mono);font-size:15px;color:var(--dim);letter-spacing:.04em}
+  .lbl{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--muted);letter-spacing:.04em}
 
   /* ===== THESIS LADDER ===== */
   .ladder{margin:34px 0 10px}
@@ -124,10 +126,10 @@
   }
   .rung:last-child{border-bottom:none}
   .rung .n{
-    font-family:var(--mono);font-size:14px;color:var(--dim);
+    font-family:var(--mono);font-size:16px;font-weight:700;color:var(--muted);
     min-width:34px;letter-spacing:.05em;
   }
-  .rung .t{font-size:18px;color:var(--txt);font-weight:500}
+  .rung .t{font-size:19px;color:var(--txt);font-weight:500}
   .rung .d{font-size:15px;color:var(--dim);margin-left:auto;font-family:var(--mono)}
   .rung.top .t{color:var(--hbf)}
 
@@ -176,8 +178,8 @@
 
   /* ===== Q&A LEARNINGS ===== */
   .qa{border-left:2px solid var(--line);padding-left:22px;margin:22px 0}
-  .qa .q{font-size:17px;color:var(--txt);font-weight:500;margin-bottom:8px}
-  .qa .a{font-size:15px;color:var(--muted);line-height:1.72}
+  .qa .q{font-size:18px;color:var(--txt);font-weight:700;margin-bottom:9px}
+  .qa .a{font-size:17px;color:#c2ccd8;line-height:1.76}
   .qa .a b{color:var(--hbf);font-weight:500}
   .qa+.qa{margin-top:30px}
 
@@ -205,7 +207,7 @@
   .goal .arrow{font-size:26px;color:var(--dim);margin:14px 0}
   .goal .to{
     font-family:var(--mono);font-weight:700;
-    font-size:clamp(44px,11vw,76px);color:var(--gain);
+    font-size:clamp(34px,8vw,56px);color:var(--gain);
     letter-spacing:-.02em;line-height:1;
   }
   .goal .to small{font-size:.4em;color:var(--muted);font-weight:400;display:block;margin-top:14px;letter-spacing:.02em}
@@ -217,7 +219,7 @@
     border:1px solid rgba(255,122,69,.22);
     border-radius:10px;padding:22px;margin:26px 0;
   }
-  .callout p{margin-bottom:0;color:var(--txt);font-size:16px}
+  .callout p{margin-bottom:0;color:var(--txt);font-size:18px}
   .callout p strong{color:var(--hbf)}
 
   /* ===== TIMELINE ===== */
@@ -233,7 +235,7 @@
   footer .sig{font-family:var(--mono);font-size:14px;color:var(--dim);letter-spacing:.1em}
   footer .date{font-size:13px;color:var(--dim);margin-top:10px}
 
-  .disc{font-size:13px;color:var(--dim);margin-top:18px;line-height:1.7}
+  .disc{font-size:15px;color:var(--dim);margin-top:18px;line-height:1.7}
 
   /* reveal */
   .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
@@ -320,7 +322,7 @@
         <span class="leg"><span class="dot logic"></span>로직 · SOXL</span>
       </div>
     </div>
-    <p class="disc">※ 로직(SOXL)을 단독으로 빼면 HBM:HBF = 54:46, 의도한 반반에 수렴. SNDU는 비트에서 옮긴 자금으로 따로 관리하되 HBF 축을 보강한다.</p>
+    <p class="disc">※ 로직(SOXL)을 단독으로 빼면 HBM:HBF = 54:46, 의도한 반반에 수렴. SNDU(샌디 2x)는 비트코인 실험 자금이라 이 봉인과 별개로 따로 관리한다. 신호등엔 포함하지 않는다.</p>
   </div>
 </section>
 
@@ -338,7 +340,7 @@
         <tr><td class="tk">하닉레버</td><td><span class="tag hbm">HBM</span></td><td>HBM 1위 · ADR 리레이팅 대기</td><td class="num">31%</td></tr>
         <tr><td class="tk">MUU</td><td><span class="tag hbm">HBM</span></td><td>마이크론 2x · 디램 종합 · 실적 베팅</td><td class="num">20%</td></tr>
         <tr><td class="tk">SOXL</td><td><span class="tag logic">로직</span></td><td>반도체 3x · 섹터 전체 노출</td><td class="num">11%</td></tr>
-        <tr><td class="tk">SNDU</td><td><span class="tag hbf">HBF</span></td><td>샌디 2x · 비트 실험 · 따로 관리</td><td class="num">별도</td></tr>
+        <tr><td class="tk">SNDU</td><td><span class="tag hbf">HBF</span></td><td>샌디 2x · 비트코인 실험 · 봉인 제외</td><td class="num">별도</td></tr>
       </tbody>
     </table>
     <p class="disc">100% 레버리지 · 100% 반도체 메모리 중심. 디램(하닉+마이크론) 절반, 낸드(샌디) 1/3, 로직 1/10.</p>
@@ -411,13 +413,66 @@
       <div class="q">밸류는 Forward로 본다</div>
       <div class="a">메모리는 사이클주라 Trailing PER이 피크에 낮고 바닥에 높은 착시가 있다. <b>하닉 Forward 5.9, 마이크론 7.8</b> — 이익이 주가보다 빨리 늘어 싸다. 샌디·마벨·브로드컴은 27~36으로 비싸다.</div>
     </div>
+
+    <div class="qa">
+      <div class="q">레버는 횡보장의 무덤이다 (decay)</div>
+      <div class="a">레버 ETF는 매일 리밸런싱한다. 오르면 큰 base에서, 내리면 그 큰 base에서 또 빠져 — <b>위아래로 출렁이기만 해도 녹는다.</b> 모닝스타: 2009~2018 2x 레버 평균 연 −11.1%인데 같은 지수는 +15.7%였다. 본주는 제자리인데 레버만 까먹은 기간이 실재했다. 정상장 연 decay 1~3%, 변동성 섹터 10%, 2022년 같은 격변은 30%+. <b>한 방향(상승)이면 폭발, 출렁이면 죽음.</b> 그래서 "확신 있을 때만 레버"가 규칙이다.</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">하루아침에 0이 되진 않는다 (서킷브레이커)</div>
+      <div class="a">대형주는 ±10%마다 5분 거래정지, 시장은 −7/−13/−20%에서 정지·종료. <b>하루 −50%는 구조적으로 불가능</b>하다. 본주 하루 최대 ≈ −20%, 레버 ≈ −40%가 현실 한계. "한두 번 흔들렸다고 10%만 남는" 일은 일어나지 않는다. 진짜 −70~90%는 <b>몇 달에 걸친 추세 하락 + decay</b>의 누적 결과다(SOXL 2022 −70%, TQQQ −71%). 그래서 무서운 건 하루 폭락이 아니라 <b>몇 달간 꺾인 추세를 못 알아채는 것</b>이다.</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">오른 %와 빠진 %는 같은 가격이 아니다</div>
+      <div class="a">+50% 오른 게 −50% 빠지면 본전이 아니라 <b>원금 −25%</b>다(1.5억→7,500만). 본전 회복은 −33%면 된다. 그래서 "원금 대비"보다 <b>고점 대비 낙폭(트레일링)</b>이 더 정확한 기준이다. 신호등이 고점 대비 −25/−40/−50%로 짜인 이유.</div>
+    </div>
+
+    <div class="qa">
+      <div class="q">진짜 무서운 건 청산이 아니라 회복 불가</div>
+      <div class="a">레버 ETF는 펀드라 <b>청산·마진콜이 없다.</b> 빚이 아니다. 하지만 한번 크게 빠지면 회복이 거의 불가능하다 — <b>−50%는 +100%, −70%는 +233%, −90%는 +900%</b>가 있어야 본전. 포트 −50%는 아직 회복 권역이지만, 더 두면 −70%(회복 불가)로 떨어진다. 그래서 −50%는 "끝"이 아니라 <b>회복 불가로 가기 전 마지막 결단선</b>이다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 5.5 신호등 설계 -->
+<section>
+  <div class="wrap reveal">
+    <div class="sec-eyebrow">06 — 신호등을 왜 이렇게 만들었나</div>
+    <h2>안 보기 위해, 정교하게 설계했다</h2>
+
+    <p>1년을 묻으려면 역설적으로 <strong>딱 하나의 장치</strong>가 필요했다. "평소엔 안 보되, 진짜 위험할 때만 알게 하는" 신호등. 그냥 안 보면 −90%까지 방치될 수 있고, 매일 보면 흔들려서 1년을 못 간다. 그 사이의 답이 이 신호등이다. 아래는 <strong>왜 이렇게 설계했는지</strong> — 나중에 흔들릴 때 까먹지 않으려고 적어둔다.</p>
+
+    <h3>① 다단계 방어선 — 한 번 놓쳐도 또 알림</h3>
+    <p>체크선이 하나(−50%)뿐이면, 그때 못 보면 −90% 직행이다. 그래서 <strong>−25%(🟡 주의) / −40%(🟠 경고) / −50%(🔴 결단)</strong> 세 겹으로 짰다. −90%까지 가려면 알림 셋을 다 무시해야 하는데, 그건 불가능하다. 한 번 놓쳐도 다음 단계에서 또 잡힌다. <strong>"1년 만에 봤더니 10%"는 구조적으로 막혔다.</strong></p>
+
+    <h3>② 🔴는 "안 보기"의 예외</h3>
+    <p>평소 🟢🟡는 무시한다 — 그게 안 보기의 핵심이다. 하지만 🟠🔴만은 본다. 1년에 거의 안 온다. 추세가 진짜 꺾였다는 신호이기 때문. <strong>"안 본다"의 유일한 예외 = 추세 붕괴 알림.</strong></p>
+
+    <h3>③ 횡보 감지 — 조용한 출혈도 잡는다</h3>
+    <p>급락만 위험한 게 아니다. <strong>고점 부근에서 몇 달 횡보하면 decay로 조용히 녹는다.</strong> 신호등이 "급락"만 보면 이 출혈을 놓친다. 그래서 고점 후 3개월(60거래일) 정체하면 🟡 횡보 경고 — "추세 살아있나, 꺾여서 횡보인가" 점검하게.</p>
+
+    <h3>④ heartbeat — 침묵이 고장인지 안전인지</h3>
+    <p>봇이 죽으면(시세 막힘·토큰 만료·에러) 위험해도 알림이 안 온다. 그럼 "조용하니 괜찮나보다" 착각한다. 그래서 <strong>주 1회 "봇 정상" 한 줄</strong>을 보낸다. 그게 안 오면 = 봇 멈춤 = 확인하라는 뜻. 침묵을 안전으로 오해하지 않게.</p>
+
+    <h3>⑤ 점검 ≠ 매도</h3>
+    <p>방어선이 울려도 자동 손절이 아니다. <strong>전제(메모리 슈퍼사이클)가 깨졌나만 확인</strong>한다. 조정(−20~40%)은 처음부터 예상한 것 — 안 던진다. 감산·DRAM/NAND 가격 하락·AI capex 둔화·삼성 HBF 장악, 이 중 <strong>셋 이상이 공식 발표로 겹칠 때만</strong> 전제가 깨진 것이다. 하루 급락·루머·FOMC 단발 반응은 노이즈.</p>
+
+    <h3>⑥ 평가액은 숨기고, 목표선만 보여준다</h3>
+    <p>현재 정확한 평가액은 일부러 숨겼다. 매일 흔들리는 숫자를 보면 1년을 못 간다. 대신 <strong>이정표·방어선 금액(고정값)</strong>만 보여준다 — 봐도 안 흔들리니까. "1.74억 가면 2단계", "9,700만 닿으면 결단" 정도만 알면 충분하다.</p>
+
+    <div class="callout">
+      <div class="lbl">설계 한 줄 요약</div>
+      <p style="margin-top:10px;margin-bottom:0">평소엔 🟢🟡 무시하고 베러비전에 집중. 🟠🔴(1년에 거의 안 옴)과 봇 침묵만 본다. 그때도 "전제가 깨졌나"만 확인하지, 가격에 반응해 던지지 않는다. <strong>안 보기 위해 정교하게 만든 장치다.</strong></p>
+    </div>
   </div>
 </section>
 
 <!-- 6. 타임라인 -->
 <section>
   <div class="wrap reveal">
-    <div class="sec-eyebrow">06 — 점검 캘린더</div>
+    <div class="sec-eyebrow">07 — 점검 캘린더</div>
     <h2>가격은 안 본다. 이것만 본다</h2>
     <p>점검 ≠ 매도. 분기마다 "메모리 사이클이 살아있나"만 확인한다. 전제가 깨지지 않는 한 판다는 선택지는 없다.</p>
     <div class="tl">
@@ -444,7 +499,7 @@
 <!-- 7. 초심 -->
 <section>
   <div class="wrap reveal">
-    <div class="sec-eyebrow">07 — 초심</div>
+    <div class="sec-eyebrow">08 — 초심</div>
     <h2>1년을 버티는 네 가지 약속</h2>
     <div class="rules">
       <div class="rule">
@@ -482,12 +537,12 @@
 <!-- 8. 행동 지침 -->
 <section>
   <div class="wrap reveal">
-    <div class="sec-eyebrow">08 — 행동 지침</div>
+    <div class="sec-eyebrow">09 — 행동 지침</div>
     <h2>봉인하되, 신호에는 반응한다</h2>
     <p>안 보는 게 목표지만 눈 감는 건 아니다. 정해둔 신호에만 반응한다 — 충동이 아니라 규칙으로.</p>
 
     <h3>손절선 — 6,000만</h3>
-    <p>현 시점 평가액은 1.2억이지만, 기억은 단순하게: <strong>6,000만 닿으면 멈춘다.</strong> 거기까지 빠지려면 메모리 본주가 -20% 넘게 폭락해야 한다 — 정상 조정이 아니라 <strong>사이클을 의심해야 할 수준</strong>이다. 그러니 6,000은 자동 손절이 아니라 <strong>긴급 점검 트리거</strong>다. 이유를 본다: 전제가 깨졌으면(감산·수요둔화·HBF 무산) 자른다. 일시적 패닉(매크로·FOMC)이면 버틴다. <strong>단, 전제가 깨졌는데 "조금만 더"는 금지.</strong></p>
+    <p>기억은 단순하게: <strong>고점 대비 −25 / −40 / −50%</strong>, 세 겹의 방어선. −25%는 "빠지기 시작"(가볍게 확인), −40%는 "추세 의심"(진지하게), −50%는 "추세 전환 확실"(결단). 한 번 놓쳐도 다음 단계에서 또 알린다. 어느 선도 자동 손절이 아니라 <strong>전제가 깨졌나 점검하는 트리거</strong>다. 깨졌으면(감산·수요둔화·HBF 무산) 자른다. 일시적 패닉(매크로·FOMC)이면 버틴다. <strong>단, 전제가 깨졌는데 "조금만 더"는 금지.</strong></p>
 
     <h3>고점을 높이는가 — 단계적으로 올린다</h3>
     <p>6,000 고정은 초기 버티기엔 완벽하지만, 사이클이 한참 올라 2억이 됐는데도 6,000이면 번 것을 다 토해낼 때까지 안 잘린다. 그래서 <strong>이정표마다 손절선을 한 칸씩 올린다.</strong> 매일 트레일링(복잡)도, 영원히 고정(수익 못 지킴)도 아니다.</p>
@@ -513,9 +568,9 @@
 <!-- 9. 목표 -->
 <section style="border-bottom:none">
   <div class="wrap reveal">
-    <div class="sec-eyebrow">09 — 성공의 정의</div>
+    <div class="sec-eyebrow">10 — 성공의 정의</div>
     <h2>금액이 아니라 사이클이 목표다</h2>
-    <p>1.2억은 목표가 아니라 이미 지나온 점이다. 레버를 한 이유는 수익 최대화 — 그러니 진짜 목표는 금액이 아니라 <strong>메모리 슈퍼사이클을 정점까지 타는 것</strong>이다.</p>
+    <p>특정 금액은 목표가 아니다. 레버를 한 이유는 수익 최대화 — 그러니 진짜 목표는 숫자가 아니라 <strong>메모리 슈퍼사이클을 정점까지 타는 것</strong>이다. 그래서 평가액은 일부러 숨기고, 이정표와 방어선만 본다.</p>
     <div class="goal">
       <div class="from">원금 8,600만 · 최대 위험 −3,000만</div>
       <div class="arrow">↓</div>
@@ -528,7 +583,7 @@
     <div class="goal" style="margin-top:18px;background:linear-gradient(160deg,rgba(255,122,69,.08),var(--panel))">
       <div class="from">봉인</div>
       <div class="arrow">🔒</div>
-      <div class="to" style="font-size:clamp(32px,8vw,52px);color:var(--gold)">2027.06.19<small>생일에 개봉 · 1년 결산</small></div>
+      <div class="to" style="font-size:clamp(28px,6vw,42px);color:var(--gold)">2027.06.19<small>생일에 개봉 · 1년 결산</small></div>
       <div class="meta">그 전엔 신호에만 반응 · 평소엔 안 본다</div>
     </div>
   </div>

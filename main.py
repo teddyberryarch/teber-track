@@ -40,6 +40,8 @@ DEFAULT = {
         "sideways_days": 60,
         "sideways_band": 0.92,
         "heartbeat_every_runs": 14,
+        "underlying_drop_kr": 0.15,
+        "underlying_drop_us": 0.10,
     },
     "holdings": {
         "hynix_lev": {"label": "하닉레버", "yf": "0195S0.KS", "ccy": "KRW", "axis": "HBM",   "shares": 1215},
@@ -47,6 +49,11 @@ DEFAULT = {
         "sndu":      {"label": "SNDU",     "yf": "SNDU",      "ccy": "USD", "axis": "HBF",   "shares": 0},
         "muu":       {"label": "MUU",      "yf": "MUU",       "ccy": "USD", "axis": "HBM",   "shares": 13},
         "soxl":      {"label": "SOXL",     "yf": "SOXL",      "ccy": "USD", "axis": "LOGIC", "shares": 28},
+    },
+    "underlyings": {
+        "hynix": {"label": "SK하이닉스", "yf": "000660.KS", "mkt": "KR"},
+        "micron":{"label": "마이크론",   "yf": "MU",        "mkt": "US"},
+        "sandisk":{"label": "샌디스크",  "yf": "SNDK",      "mkt": "US"},
     },
 }
 
@@ -95,6 +102,21 @@ def price(yticker):
     return None
 
 
+def day_change(yticker):
+    """본주 전일 종가 대비 현재 등락률. (현재가-전일종가)/전일종가. 실패 시 None."""
+    t = yf.Ticker(yticker)
+    try:
+        h = t.history(period="5d", interval="1d")
+        if h is not None and len(h) >= 2:
+            prev = float(h["Close"].iloc[-2])
+            cur = float(h["Close"].iloc[-1])
+            if prev > 0:
+                return (cur - prev) / prev
+    except Exception:
+        pass
+    return None
+
+
 def usdkrw():
     try:
         t = yf.Ticker("KRW=X")
@@ -137,6 +159,9 @@ def main():
     sideways_days = cfg.get("sideways_days", 60)
     sideways_band = cfg.get("sideways_band", 0.92)
     hb_every      = cfg.get("heartbeat_every_runs", 14)
+    drop_kr       = cfg.get("underlying_drop_kr", 0.15)
+    drop_us       = cfg.get("underlying_drop_us", 0.10)
+    unders        = cfg_all.get("underlyings", DEFAULT["underlyings"])
 
     fx = usdkrw()
 
@@ -230,7 +255,37 @@ def main():
     state["last_step"] = cur_step
     state["last_zone"] = zone
 
-    # ── heartbeat (주 1회 봇 생존 신호) ──
+    # ── 본주 급락 감지 (하닉/마이크론/샌디 본주가 하루 크게 빠지면) ──
+    # 한국(하닉): -15%↓ (하한가 -30% 근처 = 진짜 위기), 미국(MU/SNDK): -10%↓ (서킷 수준)
+    under_alerts = []
+    under_status = {}
+    for uk, u in unders.items():
+        ch = day_change(u["yf"])
+        if ch is None:
+            continue
+        under_status[uk] = round(ch, 4)
+        thr = drop_kr if u.get("mkt") == "KR" else drop_us
+        # 직전에 이미 같은 종목 급락 알림 보냈으면 중복 방지 (당일 1회)
+        last_under = state.get("under_alerted", {})
+        key = "%s_%s" % (uk, time.strftime("%Y%m%d"))
+        if ch <= -thr and key not in last_under:
+            under_alerts.append((u["label"], ch, u.get("mkt")))
+            last_under[key] = 1
+            state["under_alerted"] = last_under
+
+    for label, ch, mkt in under_alerts:
+        limit_txt = "하한가(-30%) 근처" if mkt == "KR" else "급락(미국 서킷 수준)"
+        tg_send("\n".join([
+            "🔴 <b>본주 급락 — %s %.0f%%</b>" % (label, ch * 100),
+            "%s. 레버는 이보다 더 빠졌을 수 있습니다." % limit_txt,
+            "",
+            "본주가 이 정도 빠진 건 추세 전환의 강한 신호일 수 있음.",
+            "□ 일시적 패닉(매크로/실적 실망)인가?",
+            "□ 전제가 깨진 건가?(감산·가격하락·capex둔화)",
+            "→ 방어선(평가액)도 같이 확인하세요.",
+        ]))
+
+        # ── heartbeat (주 1회 봇 생존 신호) ──
     last_hb = state.get("last_heartbeat_run", 0)
     do_hb = (run_count - last_hb) >= hb_every
     if do_hb and not events:   # 다른 알림 있으면 굳이 또 안 보냄
@@ -261,15 +316,16 @@ def main():
                 "",
                 "□ 메모리 감산? □ DRAM/NAND 가격 하락? □ AI capex 둔화?",
                 "전제 깨졌으면 정리 준비. 일시적이면 버팀.",
-                "다음 단계(-50%)는 회복 불가 직전입니다.",
+                "다음 단계(-50%)는 추세 전환이 확실해지는 결단선입니다.",
             ]))
         elif kind == "guard3":
             tg_send("\n".join([
                 "🔴🔴 <b>3차 방어선 — 고점 대비 -50% · 결단</b>",
                 "⚠️ 이건 '안 보기' 예외입니다. 반드시 확인하세요.",
                 "",
-                "레버는 여기서 더 빠지면 회복이 거의 불가능합니다.",
-                "(-50%→본전은 +100%, -70%→본전은 +233% 필요)",
+                "포트 -50%는 아직 회복 권역(+100%면 본전)이지만,",
+                "여기서 더 두면 회복 불가 구간(-70%, +233% 필요)으로 갑니다.",
+                "= 추세 전환이 확실해진 결단선.",
                 "",
                 "□ 전제가 진짜 깨졌나? (감산·가격하락·capex둔화·삼성HBF)",
                 "→ 깨졌으면 즉시 정리. 일시적 패닉이면 버팀.",
@@ -342,6 +398,7 @@ def main():
         "ts": int(time.time()),
         "fx": round(fx, 1),
         "missing": missing,
+        "underlyings": under_status,
     }
     write_json(DATA_FILE, snapshot)
     write_json(STATE_FILE, state)
