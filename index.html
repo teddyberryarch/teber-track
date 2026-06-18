@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>묻다</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap');
   :root{
     --bg:#0a0c10; --panel:#11151c; --line:#1e2530;
     --txt:#e6ecf3; --muted:#7c8794; --dim:#4b5563;
@@ -15,10 +15,10 @@
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;
-    font-weight:400;min-height:100vh;padding:0 20px;-webkit-font-smoothing:antialiased;}
+    font-weight:400;min-height:100vh;padding:0 20px;-webkit-font-smoothing:antialiased;letter-spacing:-0.01em;}
   .wrap{max-width:460px;margin:0 auto;padding:54px 0 60px}
 
-  .top{font-family:var(--mono);font-size:13px;letter-spacing:.22em;
+  .top{font-family:var(--mono);font-size:14px;font-weight:700;letter-spacing:.18em;
     text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:54px}
 
   .signal{display:flex;flex-direction:column;align-items:center;margin-bottom:14px}
@@ -33,35 +33,35 @@
   .orb.red{background:var(--red)}
   .orb.loading{background:var(--dim)}
 
-  .status{font-size:23px;font-weight:500;letter-spacing:-.01em;margin-bottom:8px;text-align:center}
-  .status-sub{font-size:15px;color:var(--muted);text-align:center;line-height:1.7;max-width:360px}
+  .status{font-size:26px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px;text-align:center}
+  .status-sub{font-size:17px;font-weight:400;color:var(--muted);text-align:center;line-height:1.7;max-width:360px}
 
   .section{margin-top:46px}
-  .sec-label{font-family:var(--mono);font-size:13px;letter-spacing:.16em;
+  .sec-label{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.12em;
     text-transform:uppercase;color:var(--dim);margin-bottom:16px}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;}
   .ms-step{display:flex;align-items:baseline;gap:10px;margin-bottom:18px}
   .ms-num{font-family:var(--mono);font-size:38px;font-weight:500;color:var(--txt);line-height:1}
-  .ms-unit{font-size:16px;color:var(--muted)}
-  .ms-peak{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--dim)}
+  .ms-unit{font-size:17px;font-weight:500;color:var(--muted)}
+  .ms-peak{margin-left:auto;font-family:var(--mono);font-size:14px;font-weight:500;color:var(--muted)}
   .track{height:8px;background:#0a0c10;border-radius:5px;overflow:hidden;border:1px solid var(--line)}
   .fill{height:100%;background:linear-gradient(90deg,var(--hbm),var(--hbf));transition:width 1s ease;border-radius:5px}
-  .track-cap{font-size:13px;color:var(--dim);margin-top:9px;font-family:var(--mono)}
-  .ms-target{font-size:15px;color:var(--muted);margin-top:12px;font-family:var(--mono)}
+  .track-cap{font-size:14px;font-weight:500;color:var(--muted);margin-top:10px;font-family:var(--mono)}
+  .ms-target{font-size:18px;font-weight:500;color:var(--txt);margin-top:14px;font-family:var(--mono)}
   .ms-target b{color:var(--hbf);font-weight:500}
 
   /* 3단 방어선 */
   .guards{margin-top:14px}
   .guard{display:flex;align-items:center;gap:14px;background:var(--panel);
     border:1px solid var(--line);border-radius:12px;padding:15px 18px;margin-bottom:9px}
-  .g-tier{font-family:var(--mono);font-size:12px;font-weight:500;width:30px;flex-shrink:0;color:var(--dim)}
+  .g-tier{font-family:var(--mono);font-size:14px;font-weight:700;width:34px;flex-shrink:0;color:var(--muted)}
   .g-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
   .g-dot.g1{background:var(--amber)} .g-dot.g2{background:var(--orange)} .g-dot.g3{background:var(--red)}
   .g-body{flex:1}
-  .g-name{font-size:15px;font-weight:500}
-  .g-amt{font-family:var(--mono);font-size:14px;color:var(--muted);margin-top:2px}
-  .g-state{font-size:12px;font-family:var(--mono);color:var(--dim);flex-shrink:0}
+  .g-name{font-size:16px;font-weight:500}
+  .g-amt{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--txt);margin-top:3px}
+  .g-state{font-size:13px;font-weight:500;font-family:var(--mono);color:var(--muted);flex-shrink:0}
   .guard.active{border-color:currentColor}
   .guard.active.g1c{border-color:var(--amber)}
   .guard.active.g2c{border-color:var(--orange)}
@@ -71,38 +71,38 @@
     padding:18px 22px;margin-top:14px;display:flex;align-items:center;gap:16px;}
   .sw-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;background:var(--green)}
   .sw-dot.warn{background:var(--amber)}
-  .sw-txt .s1{font-size:16px;font-weight:500}
-  .sw-txt .s2{font-size:14px;color:var(--muted);margin-top:3px}
+  .sw-txt .s1{font-size:17px;font-weight:500}
+  .sw-txt .s2{font-size:15px;font-weight:400;color:var(--muted);margin-top:4px}
 
   .holds{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
-  .holds h3{font-size:14px;font-weight:500;color:var(--muted);margin-bottom:14px;font-family:var(--mono);letter-spacing:.04em}
-  .hrow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+  .holds h3{font-size:15px;font-weight:700;color:var(--muted);margin-bottom:14px;font-family:var(--mono);letter-spacing:.04em}
+  .hrow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:17px;font-weight:500}
   .hrow:first-of-type{border-top:none}
   .hname{display:flex;align-items:center;gap:9px}
-  .haxis{font-size:11px;font-family:var(--mono);padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+  .haxis{font-size:13px;font-weight:700;font-family:var(--mono);padding:3px 8px;border-radius:5px;letter-spacing:.03em}
   .haxis.HBM{background:rgba(58,134,255,.15);color:var(--hbm)}
   .haxis.HBF{background:rgba(255,122,69,.15);color:var(--hbf)}
   .haxis.LOGIC{background:rgba(155,140,206,.15);color:var(--logic)}
   .hshares{font-family:var(--mono);color:var(--txt);font-weight:500}
-  .hshares span{color:var(--dim);font-weight:400;font-size:13px}
+  .hshares span{color:var(--muted);font-weight:400;font-size:14px}
 
   .flags{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
-  .flags h3{font-size:16px;font-weight:500;margin-bottom:6px}
-  .flags .fdesc{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:16px}
-  .flag{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--line);font-size:15px;color:var(--muted);align-items:flex-start}
+  .flags h3{font-size:19px;font-weight:700;margin-bottom:8px}
+  .flags .fdesc{font-size:16px;font-weight:400;color:var(--muted);line-height:1.65;margin-bottom:16px}
+  .flag{display:flex;gap:12px;padding:13px 0;border-top:1px solid var(--line);font-size:16px;font-weight:400;color:var(--muted);align-items:flex-start}
   .flag .box{width:16px;height:16px;border:1.5px solid var(--dim);border-radius:4px;flex-shrink:0;margin-top:3px}
   .flag b{color:var(--txt);font-weight:500}
-  .flag-rule{font-size:14px;color:var(--dim);margin-top:14px;line-height:1.6}
+  .flag-rule{font-size:15px;font-weight:400;color:var(--muted);margin-top:14px;line-height:1.6}
 
   .rules{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
-  .rules h3{font-size:16px;font-weight:500;margin-bottom:14px}
-  .r{display:flex;gap:11px;font-size:14.5px;color:var(--muted);padding:7px 0;line-height:1.55}
+  .rules h3{font-size:19px;font-weight:700;margin-bottom:14px}
+  .r{display:flex;gap:11px;font-size:16px;font-weight:400;color:var(--muted);padding:8px 0;line-height:1.55}
   .r span{color:var(--hbf)}
 
-  .foot{margin-top:30px;text-align:center;font-size:13px;color:var(--dim);line-height:1.7;font-family:var(--mono)}
-  .foot .big{font-family:'Noto Sans KR';font-size:15px;color:var(--muted);letter-spacing:.04em;margin-bottom:10px}
+  .foot{margin-top:30px;text-align:center;font-size:14px;font-weight:500;color:var(--muted);line-height:1.8;font-family:var(--mono)}
+  .foot .big{font-family:'Noto Sans KR';font-size:17px;font-weight:500;color:var(--txt);letter-spacing:.04em;margin-bottom:10px}
 
-  a.thesis{display:block;text-align:center;margin-top:20px;font-size:14px;color:var(--muted);
+  a.thesis{display:block;text-align:center;margin-top:20px;font-size:16px;font-weight:500;color:var(--muted);
     text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:13px;transition:.2s}
   a.thesis:hover{border-color:var(--hbf);color:var(--txt)}
 </style>
