@@ -9,75 +9,83 @@
   :root{
     --bg:#0a0c10; --panel:#11151c; --line:#1e2530;
     --txt:#e6ecf3; --muted:#7c8794; --dim:#4b5563;
-    --green:#3fb27f; --amber:#d99a3f; --red:#d9534f;
-    --hbm:#3a86ff; --hbf:#ff7a45;
+    --green:#3fb27f; --amber:#d99a3f; --orange:#e07b39; --red:#d9534f;
+    --hbm:#3a86ff; --hbf:#ff7a45; --logic:#9b8cce;
     --mono:'JetBrains Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{
-    background:var(--bg);color:var(--txt);
-    font-family:'Noto Sans KR',sans-serif;font-weight:400;
-    min-height:100vh;padding:0 20px;
-    -webkit-font-smoothing:antialiased;
-  }
+  body{background:var(--bg);color:var(--txt);font-family:'Noto Sans KR',sans-serif;
+    font-weight:400;min-height:100vh;padding:0 20px;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:460px;margin:0 auto;padding:54px 0 60px}
 
   .top{font-family:var(--mono);font-size:13px;letter-spacing:.22em;
     text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:54px}
 
-  /* ── 신호등 (메인) ── */
   .signal{display:flex;flex-direction:column;align-items:center;margin-bottom:14px}
-  .orb{
-    width:150px;height:150px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    position:relative;margin-bottom:30px;
-    transition:all 1s ease;
-  }
-  .orb::before{
-    content:'';position:absolute;inset:-18px;border-radius:50%;
-    opacity:.16;filter:blur(22px);background:inherit;
-  }
+  .orb{width:150px;height:150px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;position:relative;margin-bottom:30px;transition:all 1s ease;}
+  .orb::before{content:'';position:absolute;inset:-18px;border-radius:50%;
+    opacity:.16;filter:blur(22px);background:inherit;}
   .orb .face{font-size:46px;line-height:1}
   .orb.green{background:var(--green)}
-  .orb.amber{background:var(--amber)}
+  .orb.amber,.orb.sideways{background:var(--amber)}
+  .orb.orange{background:var(--orange)}
   .orb.red{background:var(--red)}
   .orb.loading{background:var(--dim)}
 
   .status{font-size:23px;font-weight:500;letter-spacing:-.01em;margin-bottom:8px;text-align:center}
-  .status-sub{font-size:15px;color:var(--muted);text-align:center;line-height:1.7;max-width:340px}
+  .status-sub{font-size:15px;color:var(--muted);text-align:center;line-height:1.7;max-width:360px}
 
-  /* ── 이정표 위치 ── */
   .section{margin-top:46px}
   .sec-label{font-family:var(--mono);font-size:13px;letter-spacing:.16em;
     text-transform:uppercase;color:var(--dim);margin-bottom:16px}
 
-  .milestone{
-    background:var(--panel);border:1px solid var(--line);
-    border-radius:14px;padding:22px;
-  }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;}
   .ms-step{display:flex;align-items:baseline;gap:10px;margin-bottom:18px}
   .ms-num{font-family:var(--mono);font-size:38px;font-weight:500;color:var(--txt);line-height:1}
   .ms-unit{font-size:16px;color:var(--muted)}
   .ms-peak{margin-left:auto;font-family:var(--mono);font-size:13px;color:var(--dim)}
-
   .track{height:8px;background:#0a0c10;border-radius:5px;overflow:hidden;border:1px solid var(--line)}
   .fill{height:100%;background:linear-gradient(90deg,var(--hbm),var(--hbf));transition:width 1s ease;border-radius:5px}
   .track-cap{font-size:13px;color:var(--dim);margin-top:9px;font-family:var(--mono)}
+  .ms-target{font-size:15px;color:var(--muted);margin-top:12px;font-family:var(--mono)}
+  .ms-target b{color:var(--hbf);font-weight:500}
 
-  /* ── 체크선 거리 ── */
-  .check{
-    background:var(--panel);border:1px solid var(--line);
-    border-radius:14px;padding:20px 22px;margin-top:14px;
-    display:flex;align-items:center;gap:16px;
-  }
-  .check-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0}
-  .check-dot.far{background:var(--green)}
-  .check-dot.mid{background:var(--amber)}
-  .check-dot.near{background:var(--red)}
-  .check-txt .ct1{font-size:16px;font-weight:500}
-  .check-txt .ct2{font-size:14px;color:var(--muted);margin-top:3px}
+  /* 3단 방어선 */
+  .guards{margin-top:14px}
+  .guard{display:flex;align-items:center;gap:14px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:15px 18px;margin-bottom:9px}
+  .g-tier{font-family:var(--mono);font-size:12px;font-weight:500;width:30px;flex-shrink:0;color:var(--dim)}
+  .g-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+  .g-dot.g1{background:var(--amber)} .g-dot.g2{background:var(--orange)} .g-dot.g3{background:var(--red)}
+  .g-body{flex:1}
+  .g-name{font-size:15px;font-weight:500}
+  .g-amt{font-family:var(--mono);font-size:14px;color:var(--muted);margin-top:2px}
+  .g-state{font-size:12px;font-family:var(--mono);color:var(--dim);flex-shrink:0}
+  .guard.active{border-color:currentColor}
+  .guard.active.g1c{border-color:var(--amber)}
+  .guard.active.g2c{border-color:var(--orange)}
+  .guard.active.g3c{border-color:var(--red)}
 
-  /* ── 레드플래그 ── */
+  .sideways-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:18px 22px;margin-top:14px;display:flex;align-items:center;gap:16px;}
+  .sw-dot{width:13px;height:13px;border-radius:50%;flex-shrink:0;background:var(--green)}
+  .sw-dot.warn{background:var(--amber)}
+  .sw-txt .s1{font-size:16px;font-weight:500}
+  .sw-txt .s2{font-size:14px;color:var(--muted);margin-top:3px}
+
+  .holds{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+  .holds h3{font-size:14px;font-weight:500;color:var(--muted);margin-bottom:14px;font-family:var(--mono);letter-spacing:.04em}
+  .hrow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+  .hrow:first-of-type{border-top:none}
+  .hname{display:flex;align-items:center;gap:9px}
+  .haxis{font-size:11px;font-family:var(--mono);padding:2px 7px;border-radius:5px;letter-spacing:.03em}
+  .haxis.HBM{background:rgba(58,134,255,.15);color:var(--hbm)}
+  .haxis.HBF{background:rgba(255,122,69,.15);color:var(--hbf)}
+  .haxis.LOGIC{background:rgba(155,140,206,.15);color:var(--logic)}
+  .hshares{font-family:var(--mono);color:var(--txt);font-weight:500}
+  .hshares span{color:var(--dim);font-weight:400;font-size:13px}
+
   .flags{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
   .flags h3{font-size:16px;font-weight:500;margin-bottom:6px}
   .flags .fdesc{font-size:14px;color:var(--muted);line-height:1.65;margin-bottom:16px}
@@ -86,7 +94,6 @@
   .flag b{color:var(--txt);font-weight:500}
   .flag-rule{font-size:14px;color:var(--dim);margin-top:14px;line-height:1.6}
 
-  /* ── 룰 요약 ── */
   .rules{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
   .rules h3{font-size:16px;font-weight:500;margin-bottom:14px}
   .r{display:flex;gap:11px;font-size:14.5px;color:var(--muted);padding:7px 0;line-height:1.55}
@@ -112,7 +119,7 @@
 
   <div class="section">
     <div class="sec-label">이정표</div>
-    <div class="milestone">
+    <div class="card">
       <div class="ms-step">
         <span class="ms-num" id="msNum">·</span>
         <span class="ms-unit">단계</span>
@@ -120,15 +127,26 @@
       </div>
       <div class="track"><div class="fill" id="fill" style="width:0%"></div></div>
       <div class="track-cap" id="trackCap">다음 이정표까지</div>
+      <div class="ms-target" id="msTarget"></div>
     </div>
   </div>
 
-  <div class="check" id="checkBox">
-    <div class="check-dot far" id="checkDot"></div>
-    <div class="check-txt">
-      <div class="ct1" id="checkT1">체크선까지</div>
-      <div class="ct2" id="checkT2"></div>
+  <div class="section">
+    <div class="sec-label">방어선 — 한 번 놓쳐도 또 알림</div>
+    <div class="guards" id="guards"></div>
+  </div>
+
+  <div class="sideways-card" id="swBox">
+    <div class="sw-dot" id="swDot"></div>
+    <div class="sw-txt">
+      <div class="s1" id="swT1">횡보 점검</div>
+      <div class="s2" id="swT2"></div>
     </div>
+  </div>
+
+  <div class="holds">
+    <h3>보유</h3>
+    <div id="holdRows"></div>
   </div>
 
   <div class="flags">
@@ -144,11 +162,12 @@
 
   <div class="rules">
     <h3>초심</h3>
-    <div class="r"><span>·</span> 평소엔 안 본다. 이 페이지만, 가끔.</div>
+    <div class="r"><span>·</span> 평소엔 안 본다. 🟢🟡는 무시. 🟠🔴만 본다.</div>
     <div class="r"><span>·</span> 점검은 매도가 아니다. 전제가 깨졌나만 본다.</div>
     <div class="r"><span>·</span> 조정(−20~40%)은 예상된 것. 안 던진다.</div>
-    <div class="r"><span>·</span> 가격 빠졌다고 충동 손절 X · 올랐다고 추격 X.</div>
-    <div class="r"><span>·</span> 생활비는 건드리지 않는다.</div>
+    <div class="r"><span>·</span> 급락만 위험한 게 아니다. 오래 횡보하면 decay로 녹는다.</div>
+    <div class="r"><span>·</span> -50%(🔴)는 회복 불가 직전. 그때만 결단한다.</div>
+    <div class="r"><span>·</span> 봇 주간 신호가 안 오면 = 봇 멈춤. 확인.</div>
     <div class="r"><span>·</span> 진짜 에너지는 베러비전. 투자는 봉인.</div>
   </div>
 
@@ -157,22 +176,25 @@
   <div class="foot">
     <div class="big">애매해야 길게 간다</div>
     봉인 2026.06.19 · 개봉 2027.06.19<br>
-    정확한 금액은 일부러 숨겼습니다
+    정확한 평가액은 일부러 숨겼습니다
   </div>
 </div>
 
 <script>
-const FACE = {GREEN:"🟢", AMBER:"🟡", RED:"🔴"};
+const FACE = {GREEN:"🟢", AMBER:"🟡", SIDEWAYS:"🟡", ORANGE:"🟠", RED:"🔴"};
 const STATUS = {
-  GREEN: {t:"안전지대", s:"전진 중입니다. 신경 끄고 베러비전 하세요."},
-  AMBER: {t:"체크선 근접", s:"안전지대 하단. 전제만 가볍게 확인."},
-  RED:   {t:"체크선 — 점검", s:"자동 손절 아님. 전제가 깨졌나 봅니다."},
+  GREEN:    {t:"안전지대", s:"전진 중입니다. 신경 끄고 베러비전 하세요."},
+  SIDEWAYS: {t:"횡보 — decay 점검", s:"급락은 아닌데 오래 정체 중. 추세 살아있나 점검."},
+  AMBER:    {t:"1차 방어선 -25%", s:"빠지기 시작. 아직 여유. 전제만 가볍게 확인."},
+  ORANGE:   {t:"2차 방어선 -40%", s:"추세 의심. 진지하게 점검. 다음은 회복 불가 직전."},
+  RED:      {t:"3차 방어선 -50% · 결단", s:"안 보기 예외. 전제 깨졌으면 즉시 정리."},
 };
-const DIST = {
-  far:  {dot:"far",  t1:"체크선까지 — 여유",   t2:"위험선과 충분히 멉니다"},
-  mid:  {dot:"mid",  t1:"체크선까지 — 보통",   t2:"안전지대 안, 거리 좁혀짐"},
-  near: {dot:"near", t1:"체크선까지 — 가까움", t2:"점검 준비. 전제 확인할 때"},
-};
+
+function won(n){
+  if(n >= 1e8){ return (Math.round(n/1e8*100)/100) + "억"; }
+  if(n >= 1e4){ return Math.round(n/1e4).toLocaleString("ko-KR") + "만"; }
+  return Math.round(n).toLocaleString("ko-KR") + "원";
+}
 
 async function load(){
   let d;
@@ -201,20 +223,66 @@ async function load(){
   document.getElementById("fill").style.width = prog + "%";
   document.getElementById("trackCap").textContent = "다음 이정표까지 " +
     (prog < 33 ? "초입" : prog < 66 ? "절반쯤" : "거의 도달");
+  if(d.next_ms_krw){
+    document.getElementById("msTarget").innerHTML =
+      "다음 이정표 <b>" + won(d.next_ms_krw) + "</b> 도달 시 " + ((d.step ?? 0)+1) + "단계";
+  }
 
-  // 체크선 거리
-  const dist = DIST[d.dist || "far"];
-  document.getElementById("checkDot").className = "check-dot " + dist.dot;
-  document.getElementById("checkT1").textContent = dist.t1;
-  document.getElementById("checkT2").textContent = dist.t2;
+  // 3단 방어선
+  const guardsEl = document.getElementById("guards");
+  const rank = {GREEN:0, SIDEWAYS:0, AMBER:1, ORANGE:2, RED:3}[zone] || 0;
+  const gdata = [
+    {tier:"1차", drop:"-25%", dot:"g1", cls:"g1c", amt:d.guard1_krw, hit: rank>=1, desc:"빠지기 시작 — 가볍게 확인"},
+    {tier:"2차", drop:"-40%", dot:"g2", cls:"g2c", amt:d.guard2_krw, hit: rank>=2, desc:"추세 의심 — 진지하게"},
+    {tier:"3차", drop:"-50%", dot:"g3", cls:"g3c", amt:d.guard3_krw, hit: rank>=3, desc:"회복 불가 직전 — 결단"},
+  ];
+  guardsEl.innerHTML = gdata.map(g =>
+    '<div class="guard '+(g.hit?'active '+g.cls:'')+'">'+
+      '<div class="g-tier">'+g.tier+'</div>'+
+      '<div class="g-dot '+g.dot+'"></div>'+
+      '<div class="g-body"><div class="g-name">'+g.drop+' · '+g.desc+'</div>'+
+        '<div class="g-amt">'+(g.amt?won(g.amt)+' 도달 시':'')+'</div></div>'+
+      '<div class="g-state">'+(g.hit?'발동':'대기')+'</div>'+
+    '</div>'
+  ).join("");
 
-  // 누락 종목 표시 (시세 일부 실패 시)
+  // 횡보
+  const swr = d.sideways_ratio ?? 0;
+  const swMonths = d.sideways_months ?? 3;
+  const daysSince = d.days_since_peak ?? 0;
+  const swDot = document.getElementById("swDot");
+  if(zone === "SIDEWAYS" || swr >= 1){
+    swDot.className = "sw-dot warn";
+    document.getElementById("swT1").textContent = "횡보 " + swMonths + "개월+ — decay 점검";
+    document.getElementById("swT2").textContent = "고점 후 " + daysSince + "일 정체. 추세 살아있나 확인할 때";
+  } else if(swr >= 0.5){
+    swDot.className = "sw-dot warn";
+    document.getElementById("swT1").textContent = "정체 관찰 중";
+    document.getElementById("swT2").textContent = "고점 후 " + daysSince + "일. 아직 정상이나 길어지면 점검";
+  } else {
+    swDot.className = "sw-dot";
+    document.getElementById("swT1").textContent = "횡보 — 이상 없음";
+    document.getElementById("swT2").textContent = "추세 살아있음 (고점 후 " + daysSince + "일)";
+  }
+
+  // 보유
+  if(d.holdings){
+    let rows = "";
+    for(const k in d.holdings){
+      const h = d.holdings[k];
+      if(!h.shares) continue;
+      rows += '<div class="hrow"><div class="hname"><span class="haxis '+h.axis+'">'+h.axis+'</span>'+h.label+'</div>'+
+              '<div class="hshares">'+h.shares.toLocaleString("ko-KR")+'<span> 주</span></div></div>';
+    }
+    document.getElementById("holdRows").innerHTML = rows || '<div style="color:var(--dim);font-size:14px">매수 전</div>';
+  }
+
   if(d.missing && d.missing.length){
     document.getElementById("statusSub").textContent += " (일부 시세 지연: "+d.missing.join(", ")+")";
   }
 }
 load();
-setInterval(load, 300000); // 5분
+setInterval(load, 300000);
 </script>
 </body>
 </html>
