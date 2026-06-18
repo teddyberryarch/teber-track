@@ -1,10 +1,10 @@
 {
   "zone": "GREEN",
-  "step": 1,
+  "step": 0,
   "dist": "far",
-  "ms_progress": 0.42,
-  "peak_step": 1,
-  "ts": 1750000000,
-  "fx": 1530.0,
+  "ms_progress": 0.0,
+  "peak_step": 0,
+  "ts": 1781796726,
+  "fx": 1535.2,
   "missing": []
 }
