@@ -2,7 +2,7 @@
   "zone": "GREEN",
   "step": 0,
   "dist": "far",
-  "ms_progress": 0.082,
+  "ms_progress": 0.081,
   "peak_step": 0,
   "next_ms_krw": 146360519,
   "this_ms_krw": 112585014,
@@ -13,9 +13,9 @@
   "next_guard_name": "1차(-25%)",
   "floor_krw": 60000000,
   "start_krw": 112585014,
-  "dd_from_peak": -0.003,
-  "sideways_ratio": 0.01,
-  "days_since_peak": 0,
+  "dd_from_peak": -0.004,
+  "sideways_ratio": 0.02,
+  "days_since_peak": 1,
   "sideways_months": 3,
   "holdings": {
     "hynix_lev": {
@@ -39,12 +39,12 @@
       "axis": "LOGIC"
     }
   },
-  "ts": 1781885345,
-  "fx": 1530.7,
+  "ts": 1781932747,
+  "fx": 1529.9,
   "missing": [],
   "underlyings": {
-    "hynix": NaN,
-    "micron": NaN,
-    "sandisk": NaN
+    "hynix": 0.0294,
+    "micron": 0.087,
+    "sandisk": 0.1154
   }
 }
