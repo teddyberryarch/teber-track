@@ -14,8 +14,8 @@
   "floor_krw": 60000000,
   "start_krw": 112585014,
   "dd_from_peak": -0.004,
-  "sideways_ratio": 0.02,
-  "days_since_peak": 1,
+  "sideways_ratio": 0.03,
+  "days_since_peak": 2,
   "sideways_months": 3,
   "holdings": {
     "hynix_lev": {
@@ -39,7 +39,7 @@
       "axis": "LOGIC"
     }
   },
-  "ts": 1781932747,
+  "ts": 1781967888,
   "fx": 1529.9,
   "missing": [],
   "underlyings": {
