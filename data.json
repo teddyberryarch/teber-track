@@ -14,7 +14,7 @@
   "floor_krw": 60000000,
   "start_krw": 112585014,
   "dd_from_peak": -0.004,
-  "sideways_ratio": 0.03,
+  "sideways_ratio": 0.04,
   "days_since_peak": 2,
   "sideways_months": 3,
   "holdings": {
@@ -39,7 +39,7 @@
       "axis": "LOGIC"
     }
   },
-  "ts": 1782022019,
+  "ts": 1782054753,
   "fx": 1529.9,
   "missing": [],
   "underlyings": {
