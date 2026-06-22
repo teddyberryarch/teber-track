@@ -1,6 +1,6 @@
 {
   "_config": {
-    "start_value_krw": 0,
+    "start_value_krw": 141900493,
     "milestone_growth": 0.3,
     "checkline_floor_krw": 60000000,
     "guard1_drop": 0.25,
@@ -9,8 +9,7 @@
     "sideways_days": 60,
     "sideways_band": 0.92,
     "heartbeat_every_runs": 14,
-    "underlying_drop_kr": 0.15,
-    "underlying_drop_us": 0.1
+    "underlying_peak_drop": 0.3
   },
   "holdings": {
     "hynix_lev": {
@@ -25,14 +24,14 @@
       "yf": "SNXX",
       "ccy": "USD",
       "axis": "HBF",
-      "shares": 633
+      "shares": 725
     },
     "muu": {
       "label": "MUU",
       "yf": "MUU",
       "ccy": "USD",
       "axis": "HBM",
-      "shares": 13
+      "shares": 17
     },
     "soxl": {
       "label": "SOXL",

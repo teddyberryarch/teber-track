@@ -40,8 +40,7 @@ DEFAULT = {
         "sideways_days": 60,
         "sideways_band": 0.92,
         "heartbeat_every_runs": 14,
-        "underlying_drop_kr": 0.15,
-        "underlying_drop_us": 0.10,
+        "underlying_peak_drop": 0.30,
     },
     "holdings": {
         "hynix_lev": {"label": "하닉레버", "yf": "0195S0.KS", "ccy": "KRW", "axis": "HBM",   "shares": 1215},
@@ -102,21 +101,6 @@ def price(yticker):
     return None
 
 
-def day_change(yticker):
-    """본주 전일 종가 대비 현재 등락률. (현재가-전일종가)/전일종가. 실패 시 None."""
-    t = yf.Ticker(yticker)
-    try:
-        h = t.history(period="5d", interval="1d")
-        if h is not None and len(h) >= 2:
-            prev = float(h["Close"].iloc[-2])
-            cur = float(h["Close"].iloc[-1])
-            if prev > 0:
-                return (cur - prev) / prev
-    except Exception:
-        pass
-    return None
-
-
 def usdkrw():
     try:
         t = yf.Ticker("KRW=X")
@@ -159,9 +143,8 @@ def main():
     sideways_days = cfg.get("sideways_days", 60)
     sideways_band = cfg.get("sideways_band", 0.92)
     hb_every      = cfg.get("heartbeat_every_runs", 14)
-    drop_kr       = cfg.get("underlying_drop_kr", 0.15)
-    drop_us       = cfg.get("underlying_drop_us", 0.10)
-    unders        = cfg_all.get("underlyings", DEFAULT["underlyings"])
+    under_peak_drop = cfg.get("underlying_peak_drop", 0.30)
+    unders          = cfg_all.get("underlyings", DEFAULT["underlyings"])
 
     fx = usdkrw()
 
@@ -255,35 +238,37 @@ def main():
     state["last_step"] = cur_step
     state["last_zone"] = zone
 
-    # ── 본주 급락 감지 (하닉/마이크론/샌디 본주가 하루 크게 빠지면) ──
-    # 한국(하닉): -15%↓ (하한가 -30% 근처 = 진짜 위기), 미국(MU/SNDK): -10%↓ (서킷 수준)
-    under_alerts = []
-    under_status = {}
+    # ── 본주 레드플래그 (하닉/마이크론/샌디 본주가 고점 대비 -30% 빠지면) ──
+    # 등락률은 표시 안 함(싱숭생숭 방지). 고점 대비 -30% 도달 시에만 알림.
+    under_peaks = state.get("under_peaks", {})
+    under_alerted = state.get("under_peak_alerted", {})
     for uk, u in unders.items():
-        ch = day_change(u["yf"])
-        if ch is None:
+        p = price(u["yf"])
+        if p is None:
             continue
-        under_status[uk] = round(ch, 4)
-        thr = drop_kr if u.get("mkt") == "KR" else drop_us
-        # 직전에 이미 같은 종목 급락 알림 보냈으면 중복 방지 (당일 1회)
-        last_under = state.get("under_alerted", {})
-        key = "%s_%s" % (uk, time.strftime("%Y%m%d"))
-        if ch <= -thr and key not in last_under:
-            under_alerts.append((u["label"], ch, u.get("mkt")))
-            last_under[key] = 1
-            state["under_alerted"] = last_under
-
-    for label, ch, mkt in under_alerts:
-        limit_txt = "하한가(-30%) 근처" if mkt == "KR" else "급락(미국 서킷 수준)"
-        tg_send("\n".join([
-            "🔴 <b>본주 급락 — %s %.0f%%</b>" % (label, ch * 100),
-            "%s. 레버는 이보다 더 빠졌을 수 있습니다." % limit_txt,
-            "",
-            "본주가 이 정도 빠진 건 추세 전환의 강한 신호일 수 있음.",
-            "□ 일시적 패닉(매크로/실적 실망)인가?",
-            "□ 전제가 깨진 건가?(감산·가격하락·capex둔화)",
-            "→ 방어선(평가액)도 같이 확인하세요.",
-        ]))
+        # 본주별 사상 고점 추적
+        prev_p = under_peaks.get(uk, 0)
+        peak_p = max(prev_p, p)
+        under_peaks[uk] = peak_p
+        # 고점 대비 낙폭
+        if peak_p > 0:
+            drop = (p - peak_p) / peak_p   # 음수
+            if drop <= -under_peak_drop and not under_alerted.get(uk):
+                tg_send("\n".join([
+                    "🔴 <b>본주 레드플래그 — %s</b>" % u["label"],
+                    "본주가 고점 대비 %.0f%% 빠졌습니다." % (drop * 100),
+                    "레버는 이보다 훨씬 더 빠졌을 수 있습니다.",
+                    "",
+                    "본주가 고점 대비 -30%면 추세 전환을 의심해야 합니다.",
+                    "□ 전제가 깨졌나?(감산·DRAM/NAND 가격하락·capex둔화·삼성HBF)",
+                    "→ 깨졌으면 정리, 일시적 패닉이면 버팀.",
+                ]))
+                under_alerted[uk] = 1
+            elif drop > -under_peak_drop * 0.8:
+                # 고점 대비 -24% 위로 회복하면 알림 리셋 (다음에 또 -30% 가면 다시 알림)
+                under_alerted[uk] = 0
+    state["under_peaks"] = under_peaks
+    state["under_peak_alerted"] = under_alerted
 
         # ── heartbeat (주 1회 봇 생존 신호) ──
     last_hb = state.get("last_heartbeat_run", 0)
@@ -398,7 +383,6 @@ def main():
         "ts": int(time.time()),
         "fx": round(fx, 1),
         "missing": missing,
-        "underlyings": under_status,
     }
     write_json(DATA_FILE, snapshot)
     write_json(STATE_FILE, state)

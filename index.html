@@ -87,19 +87,34 @@
   .hshares span{color:var(--muted);font-weight:400;font-size:15px}
 
 
-  /* 본주 상태 */
-  .unders{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
-  .unders h3{font-size:15px;font-weight:700;color:var(--muted);margin-bottom:6px;font-family:var(--mono);letter-spacing:.04em}
-  .unders .udesc{font-size:14px;color:var(--dim);margin-bottom:12px;line-height:1.5}
-  .urow{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:16px}
-  .urow:first-of-type{border-top:none}
-  .uname{font-weight:500}
-  .uname small{font-size:13px;color:var(--dim);font-family:var(--mono);margin-left:6px}
-  .uchg{font-family:var(--mono);font-weight:700;font-size:16px}
-  .uchg.up{color:var(--gain)}
-  .uchg.flat{color:var(--muted)}
-  .uchg.down{color:#5b8def}
-  .uchg.crash{color:var(--red)}
+
+
+  /* 점검 질문 (복붙용) */
+  .askbox{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+  .askbox h3{font-size:19px;font-weight:700;margin-bottom:6px}
+  .askbox .adesc{font-size:15px;color:var(--muted);margin-bottom:14px;line-height:1.55}
+  .qitem{background:#0a0c10;border:1px solid var(--line);border-radius:9px;padding:12px 14px;margin-bottom:9px;position:relative}
+  .qitem .qlabel{font-size:13px;font-weight:700;color:var(--hbf);font-family:var(--mono);margin-bottom:5px;letter-spacing:.03em}
+  .qitem .qtext{font-size:15px;color:var(--txt);line-height:1.55;padding-right:54px}
+  .qcopy{position:absolute;top:11px;right:11px;font-size:12px;font-family:var(--mono);font-weight:700;
+    color:var(--muted);background:var(--line);border:none;border-radius:6px;padding:5px 9px;cursor:pointer}
+  .qcopy:active{background:var(--hbf);color:#fff}
+
+  /* 실적 캘린더 */
+  .cal{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
+  .cal h3{font-size:19px;font-weight:700;margin-bottom:6px}
+  .cal .cdesc{font-size:15px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+  .crow{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+  .crow:first-of-type{border-top:none}
+  .cdate{font-family:var(--mono);font-size:15px;font-weight:700;width:62px;flex-shrink:0;color:var(--txt)}
+  .cwhat{flex:1;font-size:15px}
+  .cwhat small{display:block;font-size:13px;color:var(--dim);margin-top:2px}
+  .ctag{font-size:11px;font-weight:700;font-family:var(--mono);padding:3px 8px;border-radius:5px;flex-shrink:0}
+  .ctag.MU{background:rgba(58,134,255,.15);color:var(--hbm)}
+  .ctag.HX{background:rgba(255,122,69,.15);color:var(--hbf)}
+  .ctag.SN{background:rgba(155,140,206,.15);color:var(--logic)}
+  .ctag.FOMC{background:rgba(217,154,63,.15);color:var(--amber)}
+  .crow.soon{background:rgba(255,122,69,.06);margin:0 -10px;padding-left:10px;padding-right:10px;border-radius:7px}
 
   .flags{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
   .flags h3{font-size:19px;font-weight:700;margin-bottom:8px}
@@ -165,10 +180,34 @@
   </div>
 
 
-  <div class="unders">
-    <h3>본주 오늘 등락</h3>
-    <div class="udesc">본주가 하한가/급락이면 추세 전환 신호. 하닉 -15%↓ · 미국 -10%↓에서 🔴 알림.</div>
-    <div id="underRows"></div>
+
+  <div class="askbox">
+    <h3>점검 질문 — Claude에 복붙</h3>
+    <div class="adesc">분기 점검 때, 아래 질문을 복사해서 Claude(또는 검색)에 물어본다. 이 3개가 메모리 사이클의 핵심 신호다. 숫자가 꺾였는지만 본다.</div>
+
+    <div class="qitem">
+      <div class="qlabel">① HBM 비중 추이</div>
+      <div class="qtext" id="q1">SK하이닉스·마이크론의 최근 분기 실적에서 DRAM 내 HBM 매출 비중이 늘고 있나, 줄고 있나? HBM4 양산·가격 추이는? 메모리 마진의 핵심 레버가 살아있는지 알려줘.</div>
+      <button class="qcopy" onclick="copyQ('q1',this)">복사</button>
+    </div>
+
+    <div class="qitem">
+      <div class="qlabel">② 계약가 스프레드 (고정거래가)</div>
+      <div class="qtext" id="q2">DRAM·NAND 고정거래가(컨트랙트 프라이스)가 최근 상승 중인가 하락 전환했나? DDR5·HBM 가격 추이와 2026~2027 공급 부족 전망이 유지되는지 TrendForce 등 최신 자료로 알려줘.</div>
+      <button class="qcopy" onclick="copyQ('q2',this)">복사</button>
+    </div>
+
+    <div class="qitem">
+      <div class="qlabel">③ 하이퍼스케일러 capex</div>
+      <div class="qtext" id="q3">마이크로소프트·구글·아마존·메타의 최근 capex 가이던스가 상향인가 하향인가? AI 데이터센터 투자가 둔화 조짐이 있나, 아니면 증가 지속인가? 메모리 수요의 선행지표를 알려줘.</div>
+      <button class="qcopy" onclick="copyQ('q3',this)">복사</button>
+    </div>
+  </div>
+
+  <div class="cal">
+    <h3>실적·이벤트 캘린더</h3>
+    <div class="cdesc">미리 알아두되, 그날 들여다보려고 보는 게 아니다. 분수령만 표시. (날짜는 확정/추정 혼재 — 가까워지면 재확인)</div>
+    <div id="calRows"></div>
   </div>
 
   <div class="flags">
@@ -216,6 +255,17 @@ function won(n){
   if(n >= 1e8){ return (Math.round(n/1e8*100)/100) + "억"; }
   if(n >= 1e4){ return Math.round(n/1e4).toLocaleString("ko-KR") + "만"; }
   return Math.round(n).toLocaleString("ko-KR") + "원";
+}
+
+
+function copyQ(id, btn){
+  const txt = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const o = btn.innerText; btn.innerText="복사됨"; 
+    setTimeout(()=>btn.innerText=o, 1200);
+  }).catch(()=>{
+    const o = btn.innerText; btn.innerText="실패"; setTimeout(()=>btn.innerText=o,1200);
+  });
 }
 
 async function load(){
@@ -300,28 +350,34 @@ async function load(){
   }
 
 
-  // 본주 오늘 등락
-  if(d.underlyings){
-    const names = {hynix:["SK하이닉스","-15%"], micron:["마이크론","-10%"], sandisk:["샌디스크","-10%"]};
-    let urows = "";
-    for(const k in names){
-      const ch = d.underlyings[k];
-      if(ch === undefined || ch === null){
-        urows += '<div class="urow"><div class="uname">'+names[k][0]+'<small>'+names[k][1]+' 시 알림</small></div><div class="uchg flat">—</div></div>';
-        continue;
-      }
-      const pct = (ch*100);
-      const thr = k==="hynix" ? -15 : -10;
-      let cls = "flat";
-      if(pct <= thr) cls = "crash";
-      else if(pct < -2) cls = "down";
-      else if(pct > 2) cls = "up";
-      const sign = pct>=0 ? "+" : "";
-      urows += '<div class="urow"><div class="uname">'+names[k][0]+'<small>'+names[k][1]+' 시 알림</small></div>'+
-               '<div class="uchg '+cls+'">'+sign+pct.toFixed(1)+'%</div></div>';
-    }
-    document.getElementById("underRows").innerHTML = urows;
+
+
+
+  // 실적·이벤트 캘린더 (확정/추정)
+  const calData = [
+    {date:"6/24", tag:"MU", what:"마이크론 실적", note:"확정 · 장마감후(한국 6/25 새벽) · 5종목 분수령"},
+    {date:"7월말", tag:"HX", what:"SK하이닉스 Q2 실적", note:"추정 · 7월 하순"},
+    {date:"7/28", tag:"FOMC", what:"FOMC", note:"추정 · 금리 결정"},
+    {date:"8월초", tag:"SN", what:"샌디스크 실적", note:"추정 · HBF 진행 확인"},
+    {date:"8월", tag:"HX", what:"하이닉스 美 ADR 상장", note:"추정 · 재평가 촉매(~$140억)"},
+    {date:"9/16", tag:"FOMC", what:"FOMC", note:"추정"},
+    {date:"9월중순", tag:"MU", what:"마이크론 실적", note:"추정 · 분기 주기"},
+    {date:"10월말", tag:"HX", what:"하이닉스 Q3 실적", note:"추정"},
+    {date:"12월", tag:"MU", what:"마이크론 실적", note:"추정"},
+    {date:"12/16", tag:"FOMC", what:"FOMC", note:"추정"},
+  ];
+  const tagName = {MU:"마이크론", HX:"하이닉스", SN:"샌디스크", FOMC:"FOMC"};
+  let calHtml = "";
+  for(const c of calData){
+    const soon = c.date === "6/24" ? " soon" : "";
+    calHtml += '<div class="crow'+soon+'">'+
+      '<div class="cdate">'+c.date+'</div>'+
+      '<span class="ctag '+c.tag+'">'+tagName[c.tag]+'</span>'+
+      '<div class="cwhat">'+c.what+'<small>'+c.note+'</small></div>'+
+    '</div>';
   }
+  const calEl = document.getElementById("calRows");
+  if(calEl) calEl.innerHTML = calHtml;
 
   if(d.missing && d.missing.length){
     document.getElementById("statusSub").textContent += " (일부 시세 지연: "+d.missing.join(", ")+")";
