@@ -13,9 +13,9 @@
   "next_guard_name": "1차(-25%)",
   "floor_krw": 60000000,
   "start_krw": 141900493,
-  "dd_from_peak": -0.065,
-  "sideways_ratio": 0.01,
-  "days_since_peak": 0,
+  "dd_from_peak": -0.245,
+  "sideways_ratio": 0.02,
+  "days_since_peak": 1,
   "sideways_months": 3,
   "holdings": {
     "hynix_lev": {
@@ -39,7 +39,7 @@
       "axis": "LOGIC"
     }
   },
-  "ts": 1782191131,
-  "fx": 1534.3,
+  "ts": 1782229990,
+  "fx": 1533.2,
   "missing": []
 }
