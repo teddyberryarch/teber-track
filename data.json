@@ -2,7 +2,7 @@
   "zone": "GREEN",
   "step": 0,
   "dist": "far",
-  "ms_progress": 0.025,
+  "ms_progress": 0.0,
   "peak_step": 0,
   "next_ms_krw": 184470641,
   "this_ms_krw": 141900493,
@@ -13,8 +13,8 @@
   "next_guard_name": "1차(-25%)",
   "floor_krw": 60000000,
   "start_krw": 141900493,
-  "dd_from_peak": 0.0,
-  "sideways_ratio": 0.0,
+  "dd_from_peak": -0.065,
+  "sideways_ratio": 0.01,
   "days_since_peak": 0,
   "sideways_months": 3,
   "holdings": {
@@ -39,7 +39,7 @@
       "axis": "LOGIC"
     }
   },
-  "ts": 1782150100,
-  "fx": 1536.7,
+  "ts": 1782191131,
+  "fx": 1534.3,
   "missing": []
 }

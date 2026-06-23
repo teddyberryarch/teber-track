@@ -1,13 +1,13 @@
 {
   "start_value": 141900493,
-  "run_count": 1,
+  "run_count": 2,
   "peak": 142953943.61339343,
   "peak_run": 1,
   "last_step": 0,
   "last_zone": "GREEN",
   "under_peaks": {
     "hynix": 2919000.0,
-    "micron": 1193.260009765625,
+    "micron": 1211.3800048828125,
     "sandisk": 2322.001708984375
   },
   "under_peak_alerted": {
