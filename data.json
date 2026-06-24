@@ -13,7 +13,7 @@
   "next_guard_name": "1차(-25%)",
   "floor_krw": 60000000,
   "start_krw": 132603921,
-  "dd_from_peak": -0.12,
+  "dd_from_peak": -0.128,
   "sideways_ratio": 0.03,
   "days_since_peak": 2,
   "sideways_months": 3,
@@ -44,7 +44,7 @@
       "axis": "HBF"
     }
   },
-  "ts": 1782277480,
-  "fx": 1541.3,
+  "ts": 1782315308,
+  "fx": 1541.9,
   "missing": []
 }
