@@ -1,10 +1,50 @@
 {
   "zone": "GREEN",
-  "step": 1,
+  "step": 0,
   "dist": "far",
-  "ms_progress": 0.42,
-  "peak_step": 1,
-  "ts": 1750000000,
-  "fx": 1530.0,
+  "ms_progress": 0.0,
+  "peak_step": 0,
+  "next_ms_krw": 172385097,
+  "this_ms_krw": 132603921,
+  "guard1_krw": 107215458,
+  "guard2_krw": 85772366,
+  "guard3_krw": 71476972,
+  "next_guard_krw": 107215458,
+  "next_guard_name": "1차(-25%)",
+  "floor_krw": 60000000,
+  "start_krw": 132603921,
+  "dd_from_peak": -0.12,
+  "sideways_ratio": 0.03,
+  "days_since_peak": 2,
+  "sideways_months": 3,
+  "holdings": {
+    "muu": {
+      "label": "MUU",
+      "shares": 26,
+      "axis": "HBM"
+    },
+    "snxx": {
+      "label": "SNXX",
+      "shares": 725,
+      "axis": "HBF"
+    },
+    "hynix_lev": {
+      "label": "하닉레버",
+      "shares": 1215,
+      "axis": "HBM"
+    },
+    "soxl": {
+      "label": "SOXL",
+      "shares": 28,
+      "axis": "LOGIC"
+    },
+    "sndu": {
+      "label": "SNDU",
+      "shares": 113,
+      "axis": "HBF"
+    }
+  },
+  "ts": 1782277480,
+  "fx": 1541.3,
   "missing": []
 }
