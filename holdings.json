@@ -1,6 +1,6 @@
 {
   "_config": {
-    "start_value_krw": 141900493,
+    "start_value_krw": 132603921,
     "milestone_growth": 0.3,
     "checkline_floor_krw": 60000000,
     "guard1_drop": 0.25,
@@ -12,12 +12,12 @@
     "underlying_peak_drop": 0.3
   },
   "holdings": {
-    "hynix_lev": {
-      "label": "하닉레버",
-      "yf": "0195S0.KS",
-      "ccy": "KRW",
+    "muu": {
+      "label": "MUU",
+      "yf": "MUU",
+      "ccy": "USD",
       "axis": "HBM",
-      "shares": 1215
+      "shares": 26
     },
     "snxx": {
       "label": "SNXX",
@@ -26,12 +26,12 @@
       "axis": "HBF",
       "shares": 725
     },
-    "muu": {
-      "label": "MUU",
-      "yf": "MUU",
-      "ccy": "USD",
+    "hynix_lev": {
+      "label": "하닉레버",
+      "yf": "0195S0.KS",
+      "ccy": "KRW",
       "axis": "HBM",
-      "shares": 17
+      "shares": 1215
     },
     "soxl": {
       "label": "SOXL",
@@ -39,6 +39,13 @@
       "ccy": "USD",
       "axis": "LOGIC",
       "shares": 28
+    },
+    "sndu": {
+      "label": "SNDU",
+      "yf": "SNDU",
+      "ccy": "USD",
+      "axis": "HBF",
+      "shares": 113
     }
   },
   "underlyings": {
