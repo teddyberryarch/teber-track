@@ -74,6 +74,18 @@
   .sw-txt .s1{font-size:17px;font-weight:500}
   .sw-txt .s2{font-size:16px;font-weight:400;color:var(--muted);margin-top:4px}
 
+  .underlying-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-top:14px}
+  .ul-head{font-size:17px;font-weight:500}
+  .ul-head b{color:var(--red);font-weight:700}
+  .ul-note{font-size:15px;color:var(--muted);margin-top:6px;line-height:1.55}
+  .ul-rows{margin-top:14px}
+  .ul-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line);font-size:16px;font-weight:500}
+  .ul-row:first-child{border-top:none}
+  .ul-state{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--muted)}
+  .ul-state.hit{color:var(--red)}
+  .ul-dot{width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;margin-right:8px;vertical-align:middle}
+  .ul-dot.hit{background:var(--red)}
+
   .holds{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px}
   .holds h3{font-size:15px;font-weight:700;color:var(--muted);margin-bottom:14px;font-family:var(--mono);letter-spacing:.04em}
   .hrow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line);font-size:17px;font-weight:500}
@@ -164,6 +176,15 @@
   <div class="section">
     <div class="sec-label">방어선 — 한 번 놓쳐도 또 알림</div>
     <div class="guards" id="guards"></div>
+  </div>
+
+  <div class="section">
+    <div class="sec-label">본주 백스톱 — 텔레그램만</div>
+    <div class="underlying-card">
+      <div class="ul-head">하이닉스 · 마이크론 · 샌디 각 고점 대비 <b id="ulDrop">-25%</b> 시 알림</div>
+      <div class="ul-note">본주 -25% ≈ 레버 약 -50% 수준 · 단기 아닌 '깊은 점검' 신호. 방어선 3차(🔴)와 거의 같은 깊이 → 서로 교차검증. 실시간 등락률은 일부러 안 띄움.</div>
+      <div class="ul-rows" id="ulRows"></div>
+    </div>
   </div>
 
   <div class="sideways-card" id="swBox">
@@ -351,6 +372,21 @@ async function load(){
 
 
 
+
+  // 본주 백스톱
+  if(d.underlying_drop_pct){
+    document.getElementById("ulDrop").textContent = "-" + d.underlying_drop_pct + "%";
+  }
+  if(d.underlying_watch){
+    let urows = "";
+    for(const u of d.underlying_watch){
+      const hit = u.flagged;
+      urows += '<div class="ul-row"><div><span class="ul-dot'+(hit?' hit':'')+'"></span>'+u.label+'</div>'+
+               '<div class="ul-state'+(hit?' hit':'')+'">'+(hit?'발동':'대기')+'</div></div>';
+    }
+    const ulEl = document.getElementById("ulRows");
+    if(ulEl) ulEl.innerHTML = urows;
+  }
 
   // 실적·이벤트 캘린더 (확정/추정)
   const calData = [

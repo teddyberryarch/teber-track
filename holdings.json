@@ -9,7 +9,7 @@
     "sideways_days": 60,
     "sideways_band": 0.92,
     "heartbeat_every_runs": 14,
-    "underlying_peak_drop": 0.3
+    "underlying_peak_drop": 0.25
   },
   "holdings": {
     "muu": {

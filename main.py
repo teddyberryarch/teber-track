@@ -99,8 +99,8 @@ def usdkrw():
         p = yf_price(tk)
         if p and p > 500:   # sanity
             return p
-    print("  환율 실패 -> 기본값 1380 사용")
-    return 1380.0
+    print("  환율 실패 -> 기본값 1500 사용")
+    return 1500.0
 
 
 # ─────────────────────────────────────────────────────────
@@ -246,6 +246,11 @@ def main():
     state["underlying_peaks"] = und_peaks
     state["underlying_flagged"] = sorted(und_flagged)
 
+    # 본주 백스톱 표시용 (임계치 + 종목별 발동/대기 — 실시간 등락률은 안 내보냄)
+    und_drop_pct = round(cfg["underlying_peak_drop"] * 100)
+    und_watch = [{"label": u["label"], "flagged": uk in und_flagged}
+                 for uk, u in H.get("underlyings", {}).items()]
+
     # ── 8. data.json (현재 평가액 미포함) ────
     data = {
         "updated": dt.datetime.now().isoformat(timespec="minutes"),
@@ -261,6 +266,8 @@ def main():
         "sideways_months": 3,
         "days_since_peak": days_since_peak,
         "holdings": out_holdings,
+        "underlying_drop_pct": und_drop_pct,
+        "underlying_watch": und_watch,
         "missing": missing,
     }
     with open(DATA_PATH, "w", encoding="utf-8") as f:
