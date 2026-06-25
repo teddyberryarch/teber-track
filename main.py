@@ -1,395 +1,301 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-teber-track — 1년 묻지마 투자 신호등 봇 (GitHub Actions cron)
-- 전체 포트 평가액 계산 → 다단계 방어선/이정표/횡보 판정 → 이벤트 시 텔레그램 → data.json/state.json 저장 → 종료
-- 비용 0 (GitHub Actions). 자동주문 없음.
+teber-track — 블랙잭 프로젝트 신호등 봇
+- holdings.json 을 읽어 5종목 시세를 가져와 총 평가액 계산
+- 고점 추적 → 이정표 / 3단 방어선 / 횡보 / 본주 -30% / heartbeat 판정
+- index.html 이 읽는 data.json 생성 (현재 평가액은 일부러 미포함, 목표선 금액만)
+- 위험 신호 발생 시에만 텔레그램 알림 (🟢🟡 평상시엔 조용)
 
-핵심 설계 (상의한 룰 전부):
-- 이정표: 시작 평가액에서 직전 대비 +30% 복리(1.3^n). 도달 시 🚀 + 방어선 상향.
-- 다단계 방어선 (고점 대비): 한 번 놓쳐도 또 알림 → "1년 만에 봤더니 10%" 방지
-    · -25% → 🟡 주의 (빠지기 시작)
-    · -40% → 🟠 경고 (추세 의심, 진지하게)
-    · -50% → 🔴 결단 (회복 불가 직전, 반드시 점검 / 안 보기 예외)
-  + 원금 기준 고정 하한(6,000만)도 병행 (천천히 녹는 것 방어)
-- 횡보(decay): 고점 후 일정 기간(기본 60거래일) 정체 → 🟡 횡보 점검(조용히 녹는 것)
-- heartbeat: 주 1회 "봇 정상" 한 줄 → 침묵이 고장인지 안전인지 구분
-- 목표선 금액(이정표·방어선)은 표시(고정값). 현재 평가액(total)은 숨김.
-
-환경변수 (Actions Secrets): TG_TOKEN, TG_CHAT_ID
+환경변수(=GitHub Secrets): TG_TOKEN, TG_CHAT_ID
+실행: python main.py   (data.json, state.json 을 repo 루트에 씀)
 """
 
-import os, json, time
+import os
+import json
+import math
+import datetime as dt
+import urllib.request
+import urllib.error
+
 import yfinance as yf
-import requests
 
-TG_TOKEN   = os.environ.get("TG_TOKEN", "")
-TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "")
+HERE = os.path.dirname(os.path.abspath(__file__))
+HOLDINGS_PATH = os.path.join(HERE, "holdings.json")
+DATA_PATH = os.path.join(HERE, "data.json")
+STATE_PATH = os.path.join(HERE, "state.json")
 
-STATE_FILE    = "state.json"
-DATA_FILE     = "data.json"
-HOLDINGS_FILE = "holdings.json"
+TG_TOKEN = os.environ.get("TG_TOKEN", "").strip()
+TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "").strip()
 
-DEFAULT = {
-    "_config": {
-        "start_value_krw": 0,
-        "milestone_growth": 0.30,
-        "checkline_floor_krw": 60000000,
-        "guard1_drop": 0.25,
-        "guard2_drop": 0.40,
-        "guard3_drop": 0.50,
-        "sideways_days": 60,
-        "sideways_band": 0.92,
-        "heartbeat_every_runs": 14,
-        "underlying_peak_drop": 0.30,
-    },
-    "holdings": {
-        "hynix_lev": {"label": "하닉레버", "yf": "0195S0.KS", "ccy": "KRW", "axis": "HBM",   "shares": 1215},
-        "snxx":      {"label": "SNXX",     "yf": "SNXX",      "ccy": "USD", "axis": "HBF",   "shares": 633},
-        "sndu":      {"label": "SNDU",     "yf": "SNDU",      "ccy": "USD", "axis": "HBF",   "shares": 0},
-        "muu":       {"label": "MUU",      "yf": "MUU",       "ccy": "USD", "axis": "HBM",   "shares": 13},
-        "soxl":      {"label": "SOXL",     "yf": "SOXL",      "ccy": "USD", "axis": "LOGIC", "shares": 28},
-    },
-    "underlyings": {
-        "hynix": {"label": "SK하이닉스", "yf": "000660.KS", "mkt": "KR"},
-        "micron":{"label": "마이크론",   "yf": "MU",        "mkt": "US"},
-        "sandisk":{"label": "샌디스크",  "yf": "SNDK",      "mkt": "US"},
-    },
-}
+UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+      "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
 
-def read_json(path, default):
+# ─────────────────────────────────────────────────────────
+# 시세 가져오기
+# ─────────────────────────────────────────────────────────
+def yf_price(ticker):
+    """yfinance 로 마지막 종가. 실패하면 None."""
     try:
-        with open(path) as f:
-            return json.load(f)
-    except Exception:
-        return default
-
-
-def write_json(path, obj):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=2)
-
-
-def tg_send(text):
-    if not TG_TOKEN or not TG_CHAT_ID:
-        print("TG 미설정 — 알림 생략:", text.replace("\n", " ")[:60])
-        return
-    try:
-        requests.post(
-            "https://api.telegram.org/bot%s/sendMessage" % TG_TOKEN,
-            json={"chat_id": TG_CHAT_ID, "text": text, "parse_mode": "HTML"},
-            timeout=20,
-        )
+        t = yf.Ticker(ticker)
+        # 1차: fast_info
+        try:
+            p = float(t.fast_info["lastPrice"])
+            if p and not math.isnan(p):
+                return p
+        except Exception:
+            pass
+        # 2차: 최근 종가
+        hist = t.history(period="5d")
+        if len(hist) > 0:
+            p = float(hist["Close"].dropna().iloc[-1])
+            if p and not math.isnan(p):
+                return p
     except Exception as e:
-        print("tg_send:", e)
+        print(f"  yf fail {ticker}: {e}")
+    return None
 
 
-def price(yticker):
-    t = yf.Ticker(yticker)
+def naver_etf_price(code):
+    """
+    네이버 모바일 금융 API 폴백.
+    하닉레버(0195S0) 처럼 야후에 아직 안 잡히는 신상 국내 ETF용.
+    https://m.stock.naver.com/api/stock/{code}/basic -> {"closePrice":"25,370",...}
+    """
+    code = code.replace(".KS", "").replace(".KQ", "").strip()
+    url = f"https://m.stock.naver.com/api/stock/{code}/basic"
     try:
-        p = float(t.fast_info["last_price"])
-        if p and p == p:
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            j = json.loads(r.read().decode("utf-8"))
+        raw = j.get("closePrice") or j.get("nowVal") or ""
+        raw = str(raw).replace(",", "").strip()
+        if raw:
+            p = float(raw)
+            if p and not math.isnan(p):
+                return p
+    except Exception as e:
+        print(f"  naver fail {code}: {e}")
+    return None
+
+
+def get_price(yf_ticker, ccy):
+    """야후 우선, 국내(.KS/.KQ)면 실패 시 네이버 폴백."""
+    p = yf_price(yf_ticker)
+    if p is not None:
+        return p
+    if ccy == "KRW" and (".KS" in yf_ticker or ".KQ" in yf_ticker):
+        p = naver_etf_price(yf_ticker)
+        if p is not None:
+            print(f"  -> {yf_ticker} 네이버 폴백 성공: {p}")
             return p
-    except Exception:
-        pass
-    try:
-        h = t.history(period="5d", interval="1d")
-        if h is not None and not h.empty:
-            return float(h["Close"].iloc[-1])
-    except Exception:
-        pass
     return None
 
 
 def usdkrw():
+    """USD->KRW 환율. 실패 시 보수적 기본값."""
+    for tk in ("KRW=X", "USDKRW=X"):
+        p = yf_price(tk)
+        if p and p > 500:   # sanity
+            return p
+    print("  환율 실패 -> 기본값 1380 사용")
+    return 1380.0
+
+
+# ─────────────────────────────────────────────────────────
+# 텔레그램
+# ─────────────────────────────────────────────────────────
+def tg(msg):
+    if not TG_TOKEN or not TG_CHAT_ID:
+        print("  [TG 미설정] " + msg.replace("\n", " "))
+        return
+    url = f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage"
+    payload = json.dumps({
+        "chat_id": TG_CHAT_ID, "text": msg,
+        "parse_mode": "HTML", "disable_web_page_preview": True,
+    }).encode("utf-8")
     try:
-        t = yf.Ticker("KRW=X")
-        try:
-            return float(t.fast_info["last_price"])
-        except Exception:
-            pass
-        h = t.history(period="5d", interval="1d")
-        return float(h["Close"].iloc[-1])
+        req = urllib.request.Request(url, data=payload,
+                                     headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=10).read()
     except Exception as e:
-        print("usdkrw 실패, 기본값:", e)
-        return 1530.0
+        print(f"  TG send fail: {e}")
 
 
-def milestone_value(start, n, growth):
-    return start * ((1 + growth) ** n)
+# ─────────────────────────────────────────────────────────
+# 상태 저장
+# ─────────────────────────────────────────────────────────
+def load_state():
+    try:
+        with open(STATE_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
 
 
-def peak_step(start, peak, growth):
-    if start <= 0:
-        return 0
-    n = 0
-    while start * ((1 + growth) ** (n + 1)) <= peak:
-        n += 1
-    return n
+def save_state(s):
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(s, f, ensure_ascii=False, indent=2)
+
+
+def won(n):
+    if n >= 1e8:
+        return f"{round(n/1e8, 2)}억"
+    if n >= 1e4:
+        return f"{round(n/1e4):,}만"
+    return f"{round(n):,}원"
+
+
+ZONE_RANK = {"GREEN": 0, "SIDEWAYS": 0, "AMBER": 1, "ORANGE": 2, "RED": 3}
 
 
 def main():
-    cfg_all = read_json(HOLDINGS_FILE, DEFAULT)
-    cfg     = cfg_all.get("_config", DEFAULT["_config"])
-    holds   = cfg_all.get("holdings", DEFAULT["holdings"])
-    state   = read_json(STATE_FILE, {})
+    today = dt.date.today().isoformat()
+    with open(HOLDINGS_PATH, encoding="utf-8") as f:
+        H = json.load(f)
+    cfg = H["_config"]
+    state = load_state()
 
-    growth        = cfg.get("milestone_growth", 0.30)
-    floor         = cfg.get("checkline_floor_krw", 60000000)
-    g1            = cfg.get("guard1_drop", 0.25)
-    g2            = cfg.get("guard2_drop", 0.40)
-    g3            = cfg.get("guard3_drop", 0.50)
-    start_value   = cfg.get("start_value_krw", 0)
-    sideways_days = cfg.get("sideways_days", 60)
-    sideways_band = cfg.get("sideways_band", 0.92)
-    hb_every      = cfg.get("heartbeat_every_runs", 14)
-    under_peak_drop = cfg.get("underlying_peak_drop", 0.30)
-    unders          = cfg_all.get("underlyings", DEFAULT["underlyings"])
-
+    # ── 1. 시세 ─────────────────────────────
     fx = usdkrw()
-
-    total = 0.0
+    total_krw = 0.0
     missing = []
-    for name, c in holds.items():
-        p = price(c["yf"])
-        if p is None:
-            missing.append(c["label"])
+    out_holdings = {}
+    for key, h in H["holdings"].items():
+        price = get_price(h["yf"], h["ccy"])
+        out_holdings[key] = {"label": h["label"], "axis": h["axis"], "shares": h["shares"]}
+        if price is None:
+            missing.append(h["label"])
+            print(f"MISSING {h['label']} ({h['yf']})")
             continue
-        krw = fx if c["ccy"] == "USD" else 1.0
-        total += p * krw * c.get("shares", 0)
+        val = price * h["shares"] * (fx if h["ccy"] == "USD" else 1.0)
+        total_krw += val
+        print(f"OK {h['label']:12s} {price:>14,.2f} {h['ccy']} x{h['shares']} = {won(val)}")
 
-    if total <= 0:
-        print("시세 전체 실패 — 종료. missing:", missing)
-        return
+    # ── 2. 고점 추적 ─────────────────────────
+    start = cfg["start_value_krw"]
+    peak = max(state.get("peak_krw", start), total_krw) if total_krw > 0 else state.get("peak_krw", start)
+    peak_changed = peak > state.get("peak_krw", start) + 1
+    if peak_changed or "peak_date" not in state:
+        state["peak_date"] = today
+        state["runs_since_peak"] = 0
+    state["peak_krw"] = peak
 
-    if not start_value:
-        start_value = state.get("start_value", 0)
-        if not start_value:
-            start_value = total
-            state["start_value"] = start_value
-            print("시작 평가액 자동 설정: %d" % round(start_value))
-    else:
-        state["start_value"] = start_value
+    # ── 3. 이정표 (peak 기준) ────────────────
+    g = cfg["milestone_growth"]
+    step = 0
+    if peak > start:
+        step = int(math.floor(math.log(peak / start) / math.log(1 + g)))
+        step = max(0, step)
+    cur_floor = start * (1 + g) ** step
+    next_ms = start * (1 + g) ** (step + 1)
+    ms_progress = 0.0
+    if next_ms > cur_floor:
+        ms_progress = max(0.0, min(1.0, (peak - cur_floor) / (next_ms - cur_floor)))
+    peak_step = max(step, state.get("peak_step", 0))
+    state["peak_step"] = peak_step
 
-    run_count = state.get("run_count", 0) + 1
-    state["run_count"] = run_count
+    # ── 4. 3단 방어선 (peak 대비) ────────────
+    guard1 = peak * (1 - cfg["guard1_drop"])
+    guard2 = peak * (1 - cfg["guard2_drop"])
+    guard3 = peak * (1 - cfg["guard3_drop"])
+    floor = cfg["checkline_floor_krw"]
 
-    prev_peak = state.get("peak", 0)
-    peak = max(prev_peak, total)
-    state["peak"] = peak
-    if total >= prev_peak:
-        state["peak_run"] = run_count
-    peak_run = state.get("peak_run", run_count)
-
-    cur_step = 0
-    while milestone_value(start_value, cur_step + 1, growth) <= total:
-        cur_step += 1
-    next_ms = milestone_value(start_value, cur_step + 1, growth)
-    prev_ms = milestone_value(start_value, cur_step, growth)
-
-    # ── 다단계 방어선 (고점 대비) ──
-    guard1 = peak * (1 - g1)
-    guard2 = peak * (1 - g2)
-    guard3_trail = peak * (1 - g3)
-    guard3 = max(floor, guard3_trail)   # 3차는 원금 하한과 병행
-
-    # 고점 대비 현재 낙폭
-    dd_from_peak = (total - peak) / peak if peak else 0   # 음수
-
-    # ── 횡보(decay) 감지 ──
-    runs_per_day = 2
-    sideways_runs = sideways_days * runs_per_day
-    runs_since_peak = run_count - peak_run
-    near_peak = total >= peak * sideways_band
-    stalled   = runs_since_peak >= sideways_runs
-    is_sideways = near_peak and stalled and (total > guard1)
-
-    # ── zone 판정 (우선순위: RED > ORANGE > AMBER > SIDEWAYS > GREEN) ──
-    if total <= guard3:
+    # ── 5. zone 판정 ─────────────────────────
+    has_price = total_krw > 0 and len(missing) < len(H["holdings"])
+    if not has_price:
+        zone = state.get("last_zone", "GREEN")   # 시세 다 빠지면 직전 유지
+    elif total_krw <= guard3 or total_krw <= floor:
         zone = "RED"
-    elif total <= guard2:
+    elif total_krw <= guard2:
         zone = "ORANGE"
-    elif total <= guard1:
+    elif total_krw <= guard1:
         zone = "AMBER"
-    elif is_sideways:
-        zone = "SIDEWAYS"
     else:
         zone = "GREEN"
 
-    # ── 이벤트 감지 ──
-    prev_step = state.get("last_step", 0)
-    prev_zone = state.get("last_zone", "GREEN")
-    events = []
+    # ── 6. 횡보 (고점 근처서 60거래일 정체) ──
+    runs = state.get("runs_since_peak", 0) + 1
+    state["runs_since_peak"] = runs
+    rpd = 2  # cron 하루 2회 가정
+    trading_days = runs / rpd
+    sideways_ratio = min(2.0, trading_days / cfg["sideways_days"])
+    near_peak = has_price and total_krw >= peak * cfg["sideways_band"]
+    if zone == "GREEN" and near_peak and trading_days >= cfg["sideways_days"]:
+        zone = "SIDEWAYS"
+    days_since_peak = int(round(trading_days))
 
-    if cur_step > prev_step:
-        events.append("milestone")
-    # 방어선은 "더 나쁜 단계로 처음 진입할 때"만 알림 (반복 안 함)
-    zone_rank = {"GREEN": 0, "SIDEWAYS": 0, "AMBER": 1, "ORANGE": 2, "RED": 3}
-    if zone_rank.get(zone, 0) > zone_rank.get(prev_zone, 0):
-        if zone == "AMBER":
-            events.append("guard1")
-        elif zone == "ORANGE":
-            events.append("guard2")
-        elif zone == "RED":
-            events.append("guard3")
-    if zone == "SIDEWAYS" and prev_zone != "SIDEWAYS":
-        events.append("sideways")
-
-    state["last_step"] = cur_step
-    state["last_zone"] = zone
-
-    # ── 본주 레드플래그 (하닉/마이크론/샌디 본주가 고점 대비 -30% 빠지면) ──
-    # 등락률은 표시 안 함(싱숭생숭 방지). 고점 대비 -30% 도달 시에만 알림.
-    under_peaks = state.get("under_peaks", {})
-    under_alerted = state.get("under_peak_alerted", {})
-    for uk, u in unders.items():
-        p = price(u["yf"])
-        if p is None:
+    # ── 7. 본주 -30% 감시 (화면 X, 알림만) ───
+    und_peaks = state.get("underlying_peaks", {})
+    und_flagged = set(state.get("underlying_flagged", []))
+    for uk, u in H.get("underlyings", {}).items():
+        up = yf_price(u["yf"])
+        if up is None:
             continue
-        # 본주별 사상 고점 추적
-        prev_p = under_peaks.get(uk, 0)
-        peak_p = max(prev_p, p)
-        under_peaks[uk] = peak_p
-        # 고점 대비 낙폭
-        if peak_p > 0:
-            drop = (p - peak_p) / peak_p   # 음수
-            if drop <= -under_peak_drop and not under_alerted.get(uk):
-                tg_send("\n".join([
-                    "🔴 <b>본주 레드플래그 — %s</b>" % u["label"],
-                    "본주가 고점 대비 %.0f%% 빠졌습니다." % (drop * 100),
-                    "레버는 이보다 훨씬 더 빠졌을 수 있습니다.",
-                    "",
-                    "본주가 고점 대비 -30%면 추세 전환을 의심해야 합니다.",
-                    "□ 전제가 깨졌나?(감산·DRAM/NAND 가격하락·capex둔화·삼성HBF)",
-                    "→ 깨졌으면 정리, 일시적 패닉이면 버팀.",
-                ]))
-                under_alerted[uk] = 1
-            elif drop > -under_peak_drop * 0.8:
-                # 고점 대비 -24% 위로 회복하면 알림 리셋 (다음에 또 -30% 가면 다시 알림)
-                under_alerted[uk] = 0
-    state["under_peaks"] = under_peaks
-    state["under_peak_alerted"] = under_alerted
+        prev = und_peaks.get(uk, up)
+        upeak = max(prev, up)
+        und_peaks[uk] = upeak
+        drop = (upeak - up) / upeak if upeak > 0 else 0
+        if drop >= cfg["underlying_peak_drop"] and uk not in und_flagged:
+            und_flagged.add(uk)
+            tg(f"🔴 <b>본주 급락</b>\n{u['label']} 고점 대비 -{round(drop*100)}%\n"
+               f"레버는 결과·본주가 원인. 전제(슈퍼사이클) 깨졌나 점검.\n(등락률은 평소 안 봄 — 이건 알림만)")
+        elif drop < cfg["underlying_peak_drop"] * 0.8 and uk in und_flagged:
+            und_flagged.discard(uk)   # -24% 아래로 회복하면 플래그 해제
+    state["underlying_peaks"] = und_peaks
+    state["underlying_flagged"] = sorted(und_flagged)
 
-        # ── heartbeat (주 1회 봇 생존 신호) ──
-    last_hb = state.get("last_heartbeat_run", 0)
-    do_hb = (run_count - last_hb) >= hb_every
-    if do_hb and not events:   # 다른 알림 있으면 굳이 또 안 보냄
-        state["last_heartbeat_run"] = run_count
-
-    # ── 알림 발송 ──
-    for kind in events:
-        if kind == "milestone":
-            tg_send("\n".join([
-                "🚀 <b>이정표 %d단계 도달</b>" % cur_step,
-                "직전 대비 +30% 복리로 한 칸 전진.",
-                "방어선도 한 칸 올라갑니다 — 수익 보호.",
-                "",
-                "확인만 하고 다시 묻으세요. 가격은 안 봅니다.",
-            ]))
-        elif kind == "guard1":
-            tg_send("\n".join([
-                "🟡 <b>1차 방어선 — 고점 대비 -25%</b>",
-                "빠지기 시작했습니다. 아직 여유.",
-                "",
-                "전제(메모리 사이클) 살아있나 가볍게 확인만.",
-                "조정(-20~40%)은 예상된 것. 던지지 않습니다.",
-            ]))
-        elif kind == "guard2":
-            tg_send("\n".join([
-                "🟠 <b>2차 방어선 — 고점 대비 -40%</b>",
-                "추세를 의심해야 합니다. 진지하게.",
-                "",
-                "□ 메모리 감산? □ DRAM/NAND 가격 하락? □ AI capex 둔화?",
-                "전제 깨졌으면 정리 준비. 일시적이면 버팀.",
-                "다음 단계(-50%)는 추세 전환이 확실해지는 결단선입니다.",
-            ]))
-        elif kind == "guard3":
-            tg_send("\n".join([
-                "🔴🔴 <b>3차 방어선 — 고점 대비 -50% · 결단</b>",
-                "⚠️ 이건 '안 보기' 예외입니다. 반드시 확인하세요.",
-                "",
-                "포트 -50%는 아직 회복 권역(+100%면 본전)이지만,",
-                "여기서 더 두면 회복 불가 구간(-70%, +233% 필요)으로 갑니다.",
-                "= 추세 전환이 확실해진 결단선.",
-                "",
-                "□ 전제가 진짜 깨졌나? (감산·가격하락·capex둔화·삼성HBF)",
-                "→ 깨졌으면 즉시 정리. 일시적 패닉이면 버팀.",
-                "'전제 깨졌는데 조금만 더'는 절대 금지.",
-            ]))
-        elif kind == "sideways":
-            months = round(sideways_days / 21)
-            tg_send("\n".join([
-                "🟡 <b>횡보 %d개월+ — decay 점검</b>" % months,
-                "급락은 아닌데 고점 부근에서 오래 정체 중.",
-                "레버는 횡보장에서 조용히 녹습니다(연 3~17%).",
-                "",
-                "□ 추세 살아있나, 꺾여서 횡보인가?",
-                "일시적 숨고르기면 묻기. 추세 죽었으면 판단.",
-            ]))
-
-    if do_hb and not events:
-        face = {"GREEN":"🟢","SIDEWAYS":"🟡","AMBER":"🟡","ORANGE":"🟠","RED":"🔴"}.get(zone, "🟢")
-        tg_send("\n".join([
-            "%s <b>봇 정상 작동 중</b> (주간 점검)" % face,
-            "현재 상태: %s · %d단계" % (zone, cur_step),
-            "",
-            "이 메시지가 안 오면 봇이 멈춘 것 → 확인 필요.",
-            "평소엔 안 봐도 됩니다. 위험할 때만 따로 알립니다.",
-        ]))
-
-    # ── data.json ──
-    # 방어선까지 거리 (가장 가까운 미발동 방어선 기준)
-    if total > guard1:
-        dist_label = "far"; next_guard = guard1; next_guard_name = "1차(-25%)"
-    elif total > guard2:
-        dist_label = "mid"; next_guard = guard2; next_guard_name = "2차(-40%)"
-    elif total > guard3:
-        dist_label = "near"; next_guard = guard3; next_guard_name = "3차(-50%)"
-    else:
-        dist_label = "near"; next_guard = guard3; next_guard_name = "방어선 도달"
-
-    ms_progress = 0.0
-    if next_ms > prev_ms:
-        ms_progress = (total - prev_ms) / (next_ms - prev_ms)
-        ms_progress = max(0.0, min(1.0, ms_progress))
-
-    sideways_ratio = 0.0
-    if sideways_runs > 0:
-        sideways_ratio = min(1.0, runs_since_peak / sideways_runs)
-    days_since_peak = round(runs_since_peak / runs_per_day)
-
-    snapshot = {
+    # ── 8. data.json (현재 평가액 미포함) ────
+    data = {
+        "updated": dt.datetime.now().isoformat(timespec="minutes"),
         "zone": zone,
-        "step": cur_step,
-        "dist": dist_label,
-        "ms_progress": round(ms_progress, 3),
-        "peak_step": peak_step(start_value, peak, growth),
+        "step": step,
+        "peak_step": peak_step,
+        "ms_progress": round(ms_progress, 4),
         "next_ms_krw": round(next_ms),
-        "this_ms_krw": round(prev_ms),
-        # 3단 방어선 금액 (고정 목표선, 표시 OK)
         "guard1_krw": round(guard1),
         "guard2_krw": round(guard2),
         "guard3_krw": round(guard3),
-        "next_guard_krw": round(next_guard),
-        "next_guard_name": next_guard_name,
-        "floor_krw": round(floor),
-        "start_krw": round(start_value),
-        "dd_from_peak": round(dd_from_peak, 3),
-        "sideways_ratio": round(sideways_ratio, 2),
+        "sideways_ratio": round(sideways_ratio, 3),
+        "sideways_months": 3,
         "days_since_peak": days_since_peak,
-        "sideways_months": round(sideways_days / 21),
-        "holdings": {k: {"label": c["label"], "shares": c.get("shares", 0), "axis": c.get("axis", "")}
-                     for k, c in holds.items()},
-        "ts": int(time.time()),
-        "fx": round(fx, 1),
+        "holdings": out_holdings,
         "missing": missing,
     }
-    write_json(DATA_FILE, snapshot)
-    write_json(STATE_FILE, state)
+    with open(DATA_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
-    print("total=%d start=%d peak=%d step=%d zone=%s g1=%d g2=%d g3=%d since_peak=%dd ev=%s missing=%s" % (
-        round(total), round(start_value), round(peak), cur_step, zone,
-        round(guard1), round(guard2), round(guard3), days_since_peak, events, missing))
+    # ── 9. 알림 (zone 악화 / 이정표 / heartbeat) ──
+    last_zone = state.get("last_zone", "GREEN")
+    if has_price and ZONE_RANK.get(zone, 0) > ZONE_RANK.get(last_zone, 0):
+        names = {"AMBER": "🟡 1차 방어선 -25%", "ORANGE": "🟠 2차 방어선 -40%",
+                 "RED": "🔴 3차 방어선 -50% · 결단", "SIDEWAYS": "🟡 횡보 — decay 점검"}
+        tg(f"{names.get(zone, zone)}\n점검 ≠ 매도. 전제 깨졌나만 확인.\n"
+           f"방어선: {won(guard1)} / {won(guard2)} / {won(guard3)}")
+    if has_price and zone == "SIDEWAYS" and last_zone != "SIDEWAYS":
+        tg(f"🟡 <b>횡보 감지</b>\n고점 후 약 {days_since_peak}거래일 정체. 추세 살아있나 점검.")
+    state["last_zone"] = zone
+
+    # 이정표 갱신 알림
+    if peak_step > state.get("last_alerted_step", 0):
+        state["last_alerted_step"] = peak_step
+        tg(f"🚀 <b>{peak_step}단계 이정표 도달</b>\n방어선도 상향됨. 다음: {won(next_ms)}")
+
+    # heartbeat (N회마다 1회)
+    rc = state.get("run_count", 0) + 1
+    state["run_count"] = rc
+    if rc % cfg["heartbeat_every_runs"] == 0:
+        miss_txt = f" · 시세누락: {', '.join(missing)}" if missing else ""
+        tg(f"🤖 봇 정상 (heartbeat){miss_txt}\nzone={zone} · {peak_step}단계")
+
+    save_state(state)
+
+    # ── 10. 로그 (Run 직후 이 줄 확인) ───────
+    print("=" * 50)
+    print(f"total={won(total_krw)} ({round(total_krw):,}) | zone={zone} | "
+          f"step={step}/{peak_step} | missing={missing} | fx={fx:.1f}")
+    print("=" * 50)
 
 
 if __name__ == "__main__":

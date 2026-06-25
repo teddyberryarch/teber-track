@@ -343,8 +343,7 @@ async function load(){
     for(const k in d.holdings){
       const h = d.holdings[k];
       if(!h.shares) continue;
-      rows += '<div class="hrow"><div class="hname"><span class="haxis '+h.axis+'">'+h.axis+'</span>'+h.label+'</div>'+
-              '<div class="hshares">'+h.shares.toLocaleString("ko-KR")+'<span> 주</span></div></div>';
+      rows += '<div class="hrow"><div class="hname"><span class="haxis '+h.axis+'">'+h.axis+'</span>'+h.label+'</div></div>';
     }
     document.getElementById("holdRows").innerHTML = rows || '<div style="color:var(--dim);font-size:14px">매수 전</div>';
   }
