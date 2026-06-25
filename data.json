@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-25T12:23",
+  "updated": "2026-06-25T12:41",
   "zone": "GREEN",
   "step": 0,
   "peak_step": 0,
@@ -8,9 +8,9 @@
   "guard1_krw": 100714390,
   "guard2_krw": 80571512,
   "guard3_krw": 67142927,
-  "sideways_ratio": 0.008,
+  "sideways_ratio": 0.017,
   "sideways_months": 3,
-  "days_since_peak": 0,
+  "days_since_peak": 1,
   "holdings": {
     "muu": {
       "label": "MUU",
@@ -38,5 +38,20 @@
       "shares": 113
     }
   },
+  "underlying_drop_pct": 25,
+  "underlying_watch": [
+    {
+      "label": "SK하이닉스",
+      "flagged": false
+    },
+    {
+      "label": "마이크론",
+      "flagged": false
+    },
+    {
+      "label": "샌디스크",
+      "flagged": false
+    }
+  ],
   "missing": []
 }
