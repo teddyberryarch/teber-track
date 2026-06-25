@@ -253,7 +253,7 @@ def main():
 
     # ── 8. data.json (현재 평가액 미포함) ────
     data = {
-        "updated": dt.datetime.now().isoformat(timespec="minutes"),
+        "updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
         "zone": zone,
         "step": step,
         "peak_step": peak_step,

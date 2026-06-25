@@ -147,6 +147,10 @@
   a.thesis{display:block;text-align:center;margin-top:20px;font-size:16px;font-weight:500;color:var(--muted);
     text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:13px;transition:.2s}
   a.thesis:hover{border-color:var(--hbf);color:var(--txt)}
+
+  .hb{margin:14px 0 0;padding:11px 16px;border-radius:10px;text-align:center;font-size:15px;font-weight:500;font-family:var(--mono);border:1px solid var(--line);color:var(--muted)}
+  .hb.warn{color:#e0a93b;border-color:#e0a93b}
+  .hb.dead{color:var(--red);border-color:var(--red);font-weight:700}
 </style>
 </head>
 <body>
@@ -158,6 +162,8 @@
     <div class="status" id="status">불러오는 중</div>
     <div class="status-sub" id="statusSub">시세를 확인하고 있습니다</div>
   </div>
+
+  <div class="hb" id="hbBar"><span id="hbTxt">봇 상태 확인 중…</span></div>
 
   <div class="section">
     <div class="sec-label">이정표</div>
@@ -297,6 +303,9 @@ async function load(){
   }catch(e){
     document.getElementById("status").textContent = "대기 중";
     document.getElementById("statusSub").textContent = "봇 첫 실행 전일 수 있습니다";
+    const hb = document.getElementById("hbBar");
+    hb.className = "hb warn";
+    document.getElementById("hbTxt").textContent = "🟡 data.json 없음 — 봇 첫 실행 전이거나 확인 필요";
     return;
   }
   const zone = d.zone || "GREEN";
@@ -305,6 +314,27 @@ async function load(){
   document.getElementById("face").textContent = FACE[zone] || "🟢";
   document.getElementById("status").textContent = STATUS[zone].t;
   document.getElementById("statusSub").textContent = STATUS[zone].s;
+
+  // heartbeat — 봇 생존 (마지막 갱신 시각 vs 지금)
+  (function(){
+    const hb = document.getElementById("hbBar");
+    const hbTxt = document.getElementById("hbTxt");
+    if(!d.updated){ hb.className="hb warn"; hbTxt.textContent="🟡 갱신 시각 없음 — 봇 확인"; return; }
+    const last = new Date(d.updated);
+    const hrs = (Date.now() - last.getTime()) / 3600000;
+    const kst = last.toLocaleString("ko-KR", {timeZone:"Asia/Seoul", month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit"});
+    const ago = hrs < 1 ? "방금" : hrs < 24 ? Math.round(hrs)+"시간 전" : Math.floor(hrs/24)+"일 전";
+    if(hrs <= 20){
+      hb.className = "hb";
+      hbTxt.textContent = "🟢 봇 정상 · "+ago+" 갱신";
+    } else if(hrs <= 40){
+      hb.className = "hb warn";
+      hbTxt.textContent = "🟡 갱신 지연 · 마지막 "+ago+" ("+kst+")";
+    } else {
+      hb.className = "hb dead";
+      hbTxt.textContent = "🔴 신호 없음 "+Math.floor(hrs)+"시간째 — 봇 확인 필요 (마지막 "+kst+")";
+    }
+  })();
 
   // 이정표
   document.getElementById("msNum").textContent = d.step ?? 0;
