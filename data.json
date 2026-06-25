@@ -1,16 +1,16 @@
 {
-  "updated": "2026-06-25T12:41",
+  "updated": "2026-06-25T15:41",
   "zone": "GREEN",
   "step": 0,
   "peak_step": 0,
-  "ms_progress": 0.0423,
+  "ms_progress": 0.6423,
   "next_ms_krw": 172385097,
-  "guard1_krw": 100714390,
-  "guard2_krw": 80571512,
-  "guard3_krw": 67142927,
-  "sideways_ratio": 0.017,
+  "guard1_krw": 118615704,
+  "guard2_krw": 94892563,
+  "guard3_krw": 79077136,
+  "sideways_ratio": 0.008,
   "sideways_months": 3,
-  "days_since_peak": 1,
+  "days_since_peak": 0,
   "holdings": {
     "muu": {
       "label": "MUU",
