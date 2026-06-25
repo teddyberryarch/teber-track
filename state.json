@@ -1,6 +1,6 @@
 {
   "start_value": 132603921,
-  "run_count": 6,
+  "run_count": 7,
   "peak": 142953943.61339343,
   "peak_run": 1,
   "last_step": 0,
@@ -14,5 +14,15 @@
     "hynix": 0,
     "micron": 0,
     "sandisk": 0
-  }
+  },
+  "peak_date": "2026-06-25",
+  "runs_since_peak": 1,
+  "peak_krw": 134285853.27716595,
+  "peak_step": 0,
+  "underlying_peaks": {
+    "hynix": 2917000.0,
+    "micron": 1048.510009765625,
+    "sandisk": 1914.4599609375
+  },
+  "underlying_flagged": []
 }
