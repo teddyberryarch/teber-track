@@ -240,7 +240,8 @@ def main():
         if drop >= cfg["underlying_peak_drop"] and uk not in und_flagged:
             und_flagged.add(uk)
             tg(f"🔴 <b>본주 급락</b>\n{u['label']} 고점 대비 -{round(drop*100)}%\n"
-               f"레버는 결과·본주가 원인. 전제(슈퍼사이클) 깨졌나 점검.\n(등락률은 평소 안 봄 — 이건 알림만)")
+               f"레버 등락의 원인은 본주. 전제(슈퍼사이클) 깨졌나만 점검.\n"
+               f"(등락률은 평소 안 봄 — 이건 알림만. 매도 신호 아님)")
         elif drop < cfg["underlying_peak_drop"] * 0.8 and uk in und_flagged:
             und_flagged.discard(uk)   # -24% 아래로 회복하면 플래그 해제
     state["underlying_peaks"] = und_peaks
@@ -278,8 +279,14 @@ def main():
     if has_price and ZONE_RANK.get(zone, 0) > ZONE_RANK.get(last_zone, 0):
         names = {"AMBER": "🟡 1차 방어선 -25%", "ORANGE": "🟠 2차 방어선 -40%",
                  "RED": "🔴 3차 방어선 -50% · 결단", "SIDEWAYS": "🟡 횡보 — decay 점검"}
-        tg(f"{names.get(zone, zone)}\n점검 ≠ 매도. 전제 깨졌나만 확인.\n"
-           f"방어선: {won(guard1)} / {won(guard2)} / {won(guard3)}")
+        base = (f"{names.get(zone, zone)}\n점검 ≠ 매도. 전제 깨졌나만 확인.\n"
+                f"방어선: {won(guard1)} / {won(guard2)} / {won(guard3)}")
+        if zone == "RED":
+            base += ("\n\n가격 급락 자체는 청산 사유 아님.\n"
+                     "전제 깨짐(감산·수요둔화·케펙스 둔화·HBF 무산) 확인되면\n"
+                     "→ 청산 대신 <b>본주(1배) 전환</b> 검토.\n"
+                     "전환 트리거: forward EPS 하향 전환 + 빅테크 케펙스 둔화, 둘 다일 때만.")
+        tg(base)
     if has_price and zone == "SIDEWAYS" and last_zone != "SIDEWAYS":
         tg(f"🟡 <b>횡보 감지</b>\n고점 후 약 {days_since_peak}거래일 정체. 추세 살아있나 점검.")
     state["last_zone"] = zone

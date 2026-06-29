@@ -17,14 +17,14 @@
       "yf": "MUU",
       "ccy": "USD",
       "axis": "HBM",
-      "shares": 26
+      "shares": 29
     },
     "snxx": {
       "label": "SNXX",
       "yf": "SNXX",
       "ccy": "USD",
       "axis": "HBF",
-      "shares": 725
+      "shares": 816
     },
     "hynix_lev": {
       "label": "하닉레버",
@@ -32,13 +32,6 @@
       "ccy": "KRW",
       "axis": "HBM",
       "shares": 1215
-    },
-    "soxl": {
-      "label": "SOXL",
-      "yf": "SOXL",
-      "ccy": "USD",
-      "axis": "LOGIC",
-      "shares": 28
     },
     "sndu": {
       "label": "SNDU",
