@@ -1,10 +1,52 @@
 {
+  "updated": "2026-06-30T05:07+00:00",
   "zone": "GREEN",
-  "step": 1,
-  "dist": "far",
-  "ms_progress": 0.42,
-  "peak_step": 1,
-  "ts": 1750000000,
-  "fx": 1530.0,
+  "step": 0,
+  "peak_step": 0,
+  "ms_progress": 0.6423,
+  "next_ms_krw": 172385097,
+  "guard1_krw": 118615704,
+  "guard2_krw": 94892563,
+  "guard3_krw": 79077136,
+  "sideways_ratio": 0.083,
+  "sideways_months": 3,
+  "days_since_peak": 5,
+  "holdings": {
+    "muu": {
+      "label": "MUU",
+      "axis": "HBM",
+      "shares": 29
+    },
+    "snxx": {
+      "label": "SNXX",
+      "axis": "HBF",
+      "shares": 816
+    },
+    "hynix_lev": {
+      "label": "하닉레버",
+      "axis": "HBM",
+      "shares": 1215
+    },
+    "sndu": {
+      "label": "SNDU",
+      "axis": "HBF",
+      "shares": 113
+    }
+  },
+  "underlying_drop_pct": 25,
+  "underlying_watch": [
+    {
+      "label": "SK하이닉스",
+      "flagged": false
+    },
+    {
+      "label": "마이크론",
+      "flagged": false
+    },
+    {
+      "label": "샌디스크",
+      "flagged": false
+    }
+  ],
   "missing": []
 }
