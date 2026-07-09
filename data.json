@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-09T04:57+00:00",
-  "zone": "ORANGE",
+  "updated": "2026-07-09T16:01+00:00",
+  "zone": "AMBER",
   "step": 0,
   "peak_step": 0,
   "ms_progress": 0.6423,
@@ -8,7 +8,7 @@
   "guard1_krw": 118615704,
   "guard2_krw": 94892563,
   "guard3_krw": 79077136,
-  "sideways_ratio": 0.233,
+  "sideways_ratio": 0.242,
   "sideways_months": 3,
   "days_since_peak": 14,
   "holdings": {
@@ -41,11 +41,11 @@
     },
     {
       "label": "마이크론",
-      "flagged": true
+      "flagged": false
     },
     {
       "label": "샌디스크",
-      "flagged": true
+      "flagged": false
     }
   ],
   "missing": []
