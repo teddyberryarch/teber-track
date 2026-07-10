@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-10T04:55+00:00",
+  "updated": "2026-07-10T15:33+00:00",
   "zone": "AMBER",
   "step": 0,
   "peak_step": 0,
@@ -8,9 +8,9 @@
   "guard1_krw": 118615704,
   "guard2_krw": 94892563,
   "guard3_krw": 79077136,
-  "sideways_ratio": 0.25,
+  "sideways_ratio": 0.258,
   "sideways_months": 3,
-  "days_since_peak": 15,
+  "days_since_peak": 16,
   "holdings": {
     "muu": {
       "label": "MUU",
