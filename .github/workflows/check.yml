@@ -35,6 +35,6 @@ jobs:
         run: |
           git config user.name "teber-track-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add -A state.json data.json || true
+          git add -A state.json data.json history.csv || true
           git commit -m "update [skip ci]" || echo "no changes"
           git push || echo "nothing to push"
