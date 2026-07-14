@@ -140,18 +140,6 @@ def usdkrw():
 # ══ v3 패치: 봉인 히스토리 / ADR 괴리율 / AUM 감시 ══════════
 HISTORY_PATH = os.path.join(HERE, "history.csv")
 
-def day_low_high(ticker):
-    """당일(최근 거래일) 저가·고가. 실패 시 (None, None)."""
-    try:
-        hist = yf.Ticker(ticker).history(period="1d")
-        if len(hist) > 0:
-            lo = float(hist["Low"].iloc[-1]); hi = float(hist["High"].iloc[-1])
-            if not (math.isnan(lo) or math.isnan(hi)):
-                return lo, hi
-    except Exception as e:
-        print(f"  range fail {ticker}: {e}")
-    return None, None
-
 def record_history(today, prices, fx, total_krw, zone):
     """매일 종가 스냅샷을 append. 대시보드엔 안 보임 — 개봉일(2027.6.19)에 차트용.
     같은 날짜 중복 실행 시 마지막 값으로 갱신."""
@@ -304,17 +292,6 @@ def main():
             _p = yf_price(_u)
             _prices[_k] = _p if _p else ""
         record_history(today, _prices, fx, total_krw, zone)
-        # 당일 레인지: 각 종목 저가·고가 조합 → 포트 총액 밴드
-        _lo_sum, _hi_sum, _rng_ok = 0.0, 0.0, True
-        for _k, _h in H["holdings"].items():
-            _lo, _hi = day_low_high(_h["yf"])
-            if _lo is None:
-                _rng_ok = False; break
-            _m = fx if _h["ccy"] == "USD" else 1.0
-            _lo_sum += _lo * _h["shares"] * _m
-            _hi_sum += _hi * _h["shares"] * _m
-        if _rng_ok and _lo_sum > 0:
-            state["day_range_krw"] = [round(_lo_sum), round(_hi_sum)]
     except Exception as _e:
         print("history/adr/aum skip:", _e)
 
@@ -365,7 +342,6 @@ def main():
     data = {
         "updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
         "zone": zone,
-        "day_range_krw": state.get("day_range_krw"),
         "step": step,
         "peak_step": peak_step,
         "ms_progress": round(ms_progress, 4),
