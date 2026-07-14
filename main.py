@@ -93,6 +93,36 @@ def get_price(yf_ticker, ccy):
     return None
 
 
+def yf_recent_high(ticker, period="1mo"):
+    """최근 1개월 장중 고가. 본주 고점 추적을 종가가 아닌 고가 기준으로 (임계 스침 방지)."""
+    try:
+        hist = yf.Ticker(ticker).history(period=period)
+        if len(hist) > 0:
+            h = float(hist["High"].dropna().max())
+            if h and not math.isnan(h):
+                return h
+    except Exception as e:
+        print(f"  yf high fail {ticker}: {e}")
+    return None
+
+
+def realized_vol(ticker="000660.KS", days=60):
+    """하이닉스 60거래일 실현 변동성(연율화 %). 레버 손익분기(≈58%)와 비교용. 실패 시 None."""
+    try:
+        hist = yf.Ticker(ticker).history(period="6mo")["Close"].dropna()
+        if len(hist) < 11:
+            return None
+        days = min(days, len(hist) - 1)
+        closes = list(hist)[-(days + 1):]
+        rets = [math.log(closes[i + 1] / closes[i]) for i in range(len(closes) - 1)]
+        mean = sum(rets) / len(rets)
+        var = sum((r - mean) ** 2 for r in rets) / len(rets)
+        return math.sqrt(var) * math.sqrt(252) * 100
+    except Exception as e:
+        print(f"  vol fail {ticker}: {e}")
+        return None
+
+
 def usdkrw():
     """USD->KRW 환율. 실패 시 보수적 기본값."""
     for tk in ("KRW=X", "USDKRW=X"):
@@ -106,6 +136,31 @@ def usdkrw():
 # ─────────────────────────────────────────────────────────
 # 텔레그램
 # ─────────────────────────────────────────────────────────
+
+# ══ v3 패치: 봉인 히스토리 / ADR 괴리율 / AUM 감시 ══════════
+HISTORY_PATH = os.path.join(HERE, "history.csv")
+
+def record_history(today, prices, fx, total_krw, zone):
+    """매일 종가 스냅샷을 append. 대시보드엔 안 보임 — 개봉일(2027.6.19)에 차트용.
+    같은 날짜 중복 실행 시 마지막 값으로 갱신."""
+    import csv
+    cols = ["date", "hynix_lev", "muu", "snxx", "sndu",
+            "hynix_ud", "micron_ud", "sandisk_ud", "usdkrw", "total_krw", "zone"]
+    rows = {}
+    if os.path.exists(HISTORY_PATH):
+        with open(HISTORY_PATH, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                rows[r["date"]] = r
+    rows[today] = {"date": today, **{k: (f"{v:.2f}" if isinstance(v, float) else str(v))
+                                     for k, v in prices.items()},
+                   "usdkrw": f"{fx:.2f}", "total_krw": f"{total_krw:.0f}", "zone": zone}
+    with open(HISTORY_PATH, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=cols)
+        w.writeheader()
+        for d in sorted(rows):
+            w.writerow({c: rows[d].get(c, "") for c in cols})
+
+
 def tg(msg):
     if not TG_TOKEN or not TG_CHAT_ID:
         print("  [TG 미설정] " + msg.replace("\n", " "))
@@ -148,6 +203,17 @@ def won(n):
 
 
 ZONE_RANK = {"GREEN": 0, "SIDEWAYS": 0, "AMBER": 1, "ORANGE": 2, "RED": 3}
+
+# 방어선 = 매도선이 아니라 검증선. 도달 시 아래 4문항만 확인한다.
+AUDIT_CHECKLIST = (
+    "\n\n📋 <b>감사 발동 — 매도 아님, 검증임</b>\n"
+    "① DRAM·NAND 계약가 QoQ — 상승/보합/하락?\n"
+    "② 공급사 재고 주수 — 줄고 있나 늘고 있나?\n"
+    "③ 빅4 캐펙스 가이던스 — 유지·상향 vs 하향?\n"
+    "④ 하닉·마이크론 forward EPS — 상향 중 vs 하향 전환?\n"
+    "→ 4개 전부 초록: 아무것도 안 한다. 계좌도 안 연다.\n"
+    "→ 1개라도 빨강: 매도규칙(EPS 하향/캐펙스 축소) 검토 개시."
+)
 
 
 def main():
@@ -215,6 +281,20 @@ def main():
     else:
         zone = "GREEN"
 
+    # ── 5.5 봉인 히스토리 기록 (대시보드 미표시) ──
+    try:
+        _prices = {}
+        for _k in ["hynix_lev", "muu", "snxx", "sndu"]:
+            _h = H["holdings"].get(_k)
+            _p = get_price(_h["yf"], _h["ccy"]) if _h else None
+            _prices[_k] = _p if _p else ""
+        for _k, _u in [("hynix_ud", "000660.KS"), ("micron_ud", "MU"), ("sandisk_ud", "SNDK")]:
+            _p = yf_price(_u)
+            _prices[_k] = _p if _p else ""
+        record_history(today, _prices, fx, total_krw, zone)
+    except Exception as _e:
+        print("history/adr/aum skip:", _e)
+
     # ── 6. 횡보 (고점 근처서 60거래일 정체) ──
     runs = state.get("runs_since_peak", 0) + 1
     state["runs_since_peak"] = runs
@@ -233,8 +313,9 @@ def main():
         up = yf_price(u["yf"])
         if up is None:
             continue
+        uhigh = yf_recent_high(u["yf"])
         prev = und_peaks.get(uk, up)
-        upeak = max(prev, up)
+        upeak = max([prev, up] + ([uhigh] if uhigh else []))
         und_peaks[uk] = upeak
         drop = (upeak - up) / upeak if upeak > 0 else 0
         if drop >= cfg["underlying_peak_drop"] and uk not in und_flagged:
@@ -252,7 +333,12 @@ def main():
     und_watch = [{"label": u["label"], "flagged": uk in und_flagged}
                  for uk, u in H.get("underlyings", {}).items()]
 
-    # ── 8. data.json (현재 평가액 미포함) ────
+    # ── 8. 변동성 게이지 (하닉 60거래일 실현 σ, 레버 분기점 58%와 비교) ──
+    vol = realized_vol()
+    if vol:
+        print(f"  σ60d(하닉) = {vol:.1f}% (레버 분기점 ~58%)")
+
+    # ── 8-1. data.json (현재 평가액 미포함) ────
     data = {
         "updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
         "zone": zone,
@@ -270,6 +356,8 @@ def main():
         "underlying_drop_pct": und_drop_pct,
         "underlying_watch": und_watch,
         "missing": missing,
+        "vol_pct": round(vol, 1) if vol else None,
+        "vol_breakeven_pct": 58,
     }
     with open(DATA_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -277,15 +365,17 @@ def main():
     # ── 9. 알림 (zone 악화 / 이정표 / heartbeat) ──
     last_zone = state.get("last_zone", "GREEN")
     if has_price and ZONE_RANK.get(zone, 0) > ZONE_RANK.get(last_zone, 0):
-        names = {"AMBER": "🟡 1차 방어선 -25%", "ORANGE": "🟠 2차 방어선 -40%",
-                 "RED": "🔴 3차 방어선 -50% · 결단", "SIDEWAYS": "🟡 횡보 — decay 점검"}
-        base = (f"{names.get(zone, zone)}\n점검 ≠ 매도. 전제 깨졌나만 확인.\n"
+        names = {"AMBER": "🟡 1차 방어선 −25% 하회", "ORANGE": "🟠 2차 방어선 −40% 하회",
+                 "RED": "🔴 3차 방어선 −50% 하회", "SIDEWAYS": "🟡 횡보 — decay 점검"}
+        base = (f"{names.get(zone, zone)}\n가격 경보 ≠ 매도 신호. 방어선의 기능은 검증 강제까지.\n"
                 f"방어선: {won(guard1)} / {won(guard2)} / {won(guard3)}")
+        base += AUDIT_CHECKLIST
         if zone == "RED":
-            base += ("\n\n가격 급락 자체는 청산 사유 아님.\n"
-                     "전제 깨짐(감산·수요둔화·케펙스 둔화·HBF 무산) 확인되면\n"
-                     "→ 청산 대신 <b>본주(1배) 전환</b> 검토.\n"
-                     "전환 트리거: forward EPS 하향 전환 + 빅테크 케펙스 둔화, 둘 다일 때만.")
+            base += ("\n\n🔴 <b>−50% 특칙 — 시한부 검증</b>\n"
+                     "여기서부턴 가격 자체가 약한 증거(펀더멘털 멀쩡한데 반토막은 드묾).\n"
+                     "체크리스트 전부 초록이어도: 다음 분기 실적 발표를 데드라인으로 지정.\n"
+                     "가이던스 꺾이면 → 봉인 해제 검토 (청산 대신 <b>본주 1배 전환</b> 우선).\n"
+                     "안 꺾이면 → 홀드 지속. '가격이 틀렸다'에 무기한 베팅하지 않는다.")
         tg(base)
     if has_price and zone == "SIDEWAYS" and last_zone != "SIDEWAYS":
         tg(f"🟡 <b>횡보 감지</b>\n고점 후 약 {days_since_peak}거래일 정체. 추세 살아있나 점검.")
@@ -301,7 +391,8 @@ def main():
     state["run_count"] = rc
     if rc % cfg["heartbeat_every_runs"] == 0:
         miss_txt = f" · 시세누락: {', '.join(missing)}" if missing else ""
-        tg(f"🤖 봇 정상 (heartbeat){miss_txt}\nzone={zone} · {peak_step}단계")
+        vol_txt = f"\nσ(하닉 60d) {vol:.0f}% — 레버 분기점 58% ({'위험권' if vol >= 58 else '우호권'})" if vol else ""
+        tg(f"🤖 봇 정상 (heartbeat){miss_txt}\nzone={zone} · {peak_step}단계{vol_txt}\n(봉인 히스토리 기록 중)")
 
     save_state(state)
 
