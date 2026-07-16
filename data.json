@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-16T14:10+00:00",
+  "updated": "2026-07-16T16:23+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -8,9 +8,9 @@
   "guard1_krw": 118615704,
   "guard2_krw": 94892563,
   "guard3_krw": 79077136,
-  "sideways_ratio": 0.483,
+  "sideways_ratio": 0.492,
   "sideways_months": 3,
-  "days_since_peak": 29,
+  "days_since_peak": 30,
   "holdings": {
     "muu": {
       "label": "MUU",
@@ -49,6 +49,6 @@
     }
   ],
   "missing": [],
-  "vol_pct": 108.3,
+  "vol_pct": 105.1,
   "vol_breakeven_pct": 58
 }
