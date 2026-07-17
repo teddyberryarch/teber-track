@@ -1,6 +1,6 @@
 {
   "start_value": 132603921,
-  "run_count": 71,
+  "run_count": 72,
   "peak": 142953943.61339343,
   "peak_run": 1,
   "last_step": 0,
@@ -16,7 +16,7 @@
     "sandisk": 0
   },
   "peak_date": "2026-06-25",
-  "runs_since_peak": 63,
+  "runs_since_peak": 64,
   "peak_krw": 158154272.18189323,
   "peak_step": 0,
   "underlying_peaks": {
