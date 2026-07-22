@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-22T00:18+00:00",
+  "updated": "2026-07-22T00:45+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -8,14 +8,14 @@
   "guard1_krw": 118615704,
   "guard2_krw": 94892563,
   "guard3_krw": 79077136,
-  "sideways_ratio": 0.958,
+  "sideways_ratio": 0.967,
   "sideways_months": 3,
   "days_since_peak": 58,
   "holdings": {
     "muu": {
       "label": "MUU",
       "axis": "HBM",
-      "shares": 29
+      "shares": 580
     },
     "snxx": {
       "label": "SNXX",
@@ -33,6 +33,9 @@
       "shares": 113
     }
   },
+  "floor_krw": 60000000,
+  "floor_ok": true,
+  "split_warn": null,
   "underlying_drop_pct": 25,
   "underlying_watch": [
     {
@@ -49,6 +52,6 @@
     }
   ],
   "missing": [],
-  "vol_pct": 108.6,
+  "vol_pct": 109.6,
   "vol_breakeven_pct": 58
 }
