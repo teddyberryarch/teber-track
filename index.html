@@ -165,7 +165,6 @@
 
   <div class="hb" id="hbBar"><span id="hbTxt">봇 상태 확인 중…</span></div>
   <div class="hb dead" id="splitBar" style="display:none"></div>
-  <div class="hb" id="floorBar" style="display:none"></div>
 
   <div class="section">
     <div class="sec-label">이정표</div>
@@ -410,13 +409,6 @@ async function load(){
   // 정합성 경고 + 원금 하한
   const sb = document.getElementById("splitBar");
   if(sb && d.split_warn){ sb.style.display="block"; sb.textContent = "⚠️ 데이터 정합성 경고: "+d.split_warn+" 가격 점프 — 분할/병합 확인 전 총액·방어선 신뢰 불가"; }
-  const fb = document.getElementById("floorBar");
-  if(fb && d.floor_krw){
-    fb.style.display="block";
-    if(d.floor_ok){ fb.textContent = "원금 하한 "+Math.round(d.floor_krw/1e4).toLocaleString()+"만 — 위 ✓"; fb.style.color="#4caf7d"; fb.style.borderColor="#2e5e46"; }
-    else { fb.className="hb dead"; fb.textContent = "🔴 원금 하한 6,000만 하회 — 각본 최고 강도 점검 구간"; }
-  }
-
   // 본주 백스톱
   if(d.underlying_drop_pct){
     document.getElementById("ulDrop").textContent = "-" + d.underlying_drop_pct + "%";
