@@ -161,6 +161,18 @@ def record_history(today, prices, fx, total_krw, zone):
             w.writerow({c: rows[d].get(c, "") for c in cols})
 
 
+
+def split_suspect(key, price_now, state):
+    """전 실행 기록 대비 가격 점프가 본주 2x로 설명 안 되면 분할/병합 의심."""
+    prev = state.get(f"lastpx_{key}")
+    state[f"lastpx_{key}"] = price_now
+    if not prev or not price_now:
+        return None
+    ratio = price_now / prev
+    if ratio < 0.55 or ratio > 1.8:  # 하루 -45%/+80%는 2x로도 비정상
+        return ratio
+    return None
+
 def tg(msg):
     if not TG_TOKEN or not TG_CHAT_ID:
         print("  [TG 미설정] " + msg.replace("\n", " "))
@@ -291,6 +303,14 @@ def main():
         for _k, _u in [("hynix_ud", "000660.KS"), ("micron_ud", "MU"), ("sandisk_ud", "SNDK")]:
             _p = yf_price(_u)
             _prices[_k] = _p if _p else ""
+        for _k in ["hynix_lev", "muu", "snxx", "sndu"]:
+            _r = split_suspect(_k, _prices.get(_k) or 0, state)
+            if _r:
+                _lbl = H["holdings"][_k]["label"]
+                state["split_warn"] = f"{_lbl} x{_r:.2f}"
+                tg(f"⚠️ {_lbl} 가격 점프 x{_r:.2f} — 액면분할/병합 의심!\n"
+                   f"holdings.json 주식수 확인 필요 (분할이면 수량도 곱해야 함).\n"
+                   f"확인 전까지 총액·방어선 판정 왜곡될 수 있음.")
         record_history(today, _prices, fx, total_krw, zone)
     except Exception as _e:
         print("history/adr/aum skip:", _e)
@@ -353,6 +373,9 @@ def main():
         "sideways_months": 3,
         "days_since_peak": days_since_peak,
         "holdings": out_holdings,
+        "floor_krw": cfg["checkline_floor_krw"],
+        "floor_ok": bool(total_krw >= cfg["checkline_floor_krw"]),
+        "split_warn": state.get("split_warn"),
         "underlying_drop_pct": und_drop_pct,
         "underlying_watch": und_watch,
         "missing": missing,
