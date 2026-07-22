@@ -278,6 +278,8 @@ def main():
     guard1 = peak * (1 - cfg["guard1_drop"])
     guard2 = peak * (1 - cfg["guard2_drop"])
     guard3 = peak * (1 - cfg["guard3_drop"])
+    guard4 = peak * 0.4   # -60%
+    guard5 = peak * 0.3   # -70%
     floor = cfg["checkline_floor_krw"]
 
     # ── 5. zone 판정 ─────────────────────────
@@ -311,6 +313,12 @@ def main():
                 tg(f"⚠️ {_lbl} 가격 점프 x{_r:.2f} — 액면분할/병합 의심!\n"
                    f"holdings.json 주식수 확인 필요 (분할이면 수량도 곱해야 함).\n"
                    f"확인 전까지 총액·방어선 판정 왜곡될 수 있음.")
+        for _nm, _lv, _pct in [("g4", guard4, 60), ("g5", guard5, 70)]:
+            if total_krw < _lv and not state.get(f"deep_{_nm}"):
+                state[f"deep_{_nm}"] = True
+                tg(f"🔴 심층선 -{_pct}% ({_lv/1e4:,.0f}만) 하회.\n가격 경보 ≠ 매도. 전제 점검 + 시한부 검증 데드라인 확인.")
+            elif total_krw > _lv * 1.05 and state.get(f"deep_{_nm}"):
+                state[f"deep_{_nm}"] = False
         record_history(today, _prices, fx, total_krw, zone)
     except Exception as _e:
         print("history/adr/aum skip:", _e)
@@ -343,7 +351,7 @@ def main():
             tg(f"🔴 <b>본주 급락</b>\n{u['label']} 고점 대비 -{round(drop*100)}%\n"
                f"레버 등락의 원인은 본주. 전제(슈퍼사이클) 깨졌나만 점검.\n"
                f"(등락률은 평소 안 봄 — 이건 알림만. 매도 신호 아님)")
-        elif drop < cfg["underlying_peak_drop"] * 0.8 and uk in und_flagged:
+        elif drop < cfg["underlying_peak_drop"] and uk in und_flagged:
             und_flagged.discard(uk)   # -24% 아래로 회복하면 플래그 해제
     state["underlying_peaks"] = und_peaks
     state["underlying_flagged"] = sorted(und_flagged)
@@ -369,6 +377,10 @@ def main():
         "guard1_krw": round(guard1),
         "guard2_krw": round(guard2),
         "guard3_krw": round(guard3),
+        "guard4_krw": round(guard4),
+        "guard5_krw": round(guard5),
+        "deep_g4": bool(state.get("deep_g4")),
+        "deep_g5": bool(state.get("deep_g5")),
         "sideways_ratio": round(sideways_ratio, 3),
         "sideways_months": 3,
         "days_since_peak": days_since_peak,

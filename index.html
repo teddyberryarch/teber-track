@@ -360,6 +360,8 @@ async function load(){
     {tier:"1차", drop:"-25%", dot:"g1", cls:"g1c", amt:d.guard1_krw, hit: rank>=1, desc:"빠지기 시작 — 가볍게 확인"},
     {tier:"2차", drop:"-40%", dot:"g2", cls:"g2c", amt:d.guard2_krw, hit: rank>=2, desc:"추세 의심 — 진지하게"},
     {tier:"3차", drop:"-50%", dot:"g3", cls:"g3c", amt:d.guard3_krw, hit: rank>=3, desc:"추세 전환 확실 — 결단"},
+    {tier:"4차", drop:"-60%", dot:"g3", cls:"g3c", amt:d.guard4_krw, hit: !!d.deep_g4, desc:"심층 — 시한부 검증 유지"},
+    {tier:"5차", drop:"-70%", dot:"g3", cls:"g3c", amt:d.guard5_krw, hit: !!d.deep_g5, desc:"심층 — 회복 불가 경계"},
   ];
   guardsEl.innerHTML = gdata.map(g =>
     '<div class="guard '+(g.hit?'active '+g.cls:'')+'">'+
