@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-23T15:17+00:00",
+  "updated": "2026-07-23T17:38+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -12,9 +12,9 @@
   "guard5_krw": 47446282,
   "deep_g4": false,
   "deep_g5": false,
-  "sideways_ratio": 1.108,
+  "sideways_ratio": 1.117,
   "sideways_months": 3,
-  "days_since_peak": 66,
+  "days_since_peak": 67,
   "holdings": {
     "muu": {
       "label": "MUU",
