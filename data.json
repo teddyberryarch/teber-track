@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-26T07:40+00:00",
+  "updated": "2026-07-26T10:07+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -12,7 +12,7 @@
   "guard5_krw": 47446282,
   "deep_g4": true,
   "deep_g5": false,
-  "sideways_ratio": 1.333,
+  "sideways_ratio": 1.342,
   "sideways_months": 3,
   "days_since_peak": 80,
   "holdings": {
