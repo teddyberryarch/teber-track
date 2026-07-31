@@ -140,19 +140,26 @@ def usdkrw():
 # ══ v3 패치: 봉인 히스토리 / ADR 괴리율 / AUM 감시 ══════════
 HISTORY_PATH = os.path.join(HERE, "history.csv")
 
-def record_history(today, prices, fx, total_krw, zone):
-    """매일 종가 스냅샷을 append. 대시보드엔 안 보임 — 개봉일(2027.6.19)에 차트용.
-    같은 날짜 중복 실행 시 마지막 값으로 갱신."""
+def record_history(stamp, prices, fx, total_krw, zone):
+    """실행 시점 스냅샷을 append. 대시보드엔 안 보임 — 개봉일(2027.6.19)에 차트용.
+    v5: 키를 날짜 → 타임스탬프(KST)로 변경. 장중 여러 번 돌면 각각 별도 행으로 쌓임.
+    같은 타임스탬프 중복 실행 시에만 마지막 값으로 갱신."""
     import csv
-    cols = ["date", "hynix_lev", "muu", "snxx", "sndu",
+    cols = ["ts", "date", "hynix_lev", "muu", "snxx", "sndu",
             "hynix_ud", "micron_ud", "sandisk_ud", "usdkrw", "total_krw", "zone"]
     rows = {}
     if os.path.exists(HISTORY_PATH):
         with open(HISTORY_PATH, newline="", encoding="utf-8") as f:
             for r in csv.DictReader(f):
-                rows[r["date"]] = r
-    rows[today] = {"date": today, **{k: (f"{v:.2f}" if isinstance(v, float) else str(v))
-                                     for k, v in prices.items()},
+                # 구버전(date 키) 파일도 그대로 읽어서 보존
+                k = r.get("ts") or r.get("date")
+                if k:
+                    r.setdefault("ts", k)
+                    r.setdefault("date", k[:10])
+                    rows[k] = r
+    rows[stamp] = {"ts": stamp, "date": stamp[:10],
+                   **{k: (f"{v:.2f}" if isinstance(v, float) else str(v))
+                      for k, v in prices.items()},
                    "usdkrw": f"{fx:.2f}", "total_krw": f"{total_krw:.0f}", "zone": zone}
     with open(HISTORY_PATH, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols)
@@ -229,7 +236,10 @@ AUDIT_CHECKLIST = (
 
 
 def main():
-    today = dt.date.today().isoformat()
+    # GitHub Actions 러너는 UTC → KST(+9)로 변환해서 날짜·시각 기록
+    _now_kst = dt.datetime.utcnow() + dt.timedelta(hours=9)
+    today = _now_kst.date().isoformat()
+    stamp = _now_kst.strftime("%Y-%m-%d %H:%M")
     with open(HOLDINGS_PATH, encoding="utf-8") as f:
         H = json.load(f)
     cfg = H["_config"]
@@ -284,16 +294,26 @@ def main():
 
     # ── 5. zone 판정 ─────────────────────────
     has_price = total_krw > 0 and len(missing) < len(H["holdings"])
+    _prev_zone = state.get("last_zone", "GREEN")
     if not has_price:
-        zone = state.get("last_zone", "GREEN")   # 시세 다 빠지면 직전 유지
-    elif total_krw <= guard3 or total_krw <= floor:
-        zone = "RED"
-    elif total_krw <= guard2:
-        zone = "ORANGE"
-    elif total_krw <= guard1:
-        zone = "AMBER"
+        zone = _prev_zone   # 시세 다 빠지면 직전 유지
     else:
-        zone = "GREEN"
+        if total_krw <= guard3 or total_krw <= floor:
+            zone = "RED"
+        elif total_krw <= guard2:
+            zone = "ORANGE"
+        elif total_krw <= guard1:
+            zone = "AMBER"
+        else:
+            zone = "GREEN"
+        # ── 완충밴드(이력현상) ──
+        # 악화는 선 그대로 즉시 반영. 개선은 선을 3% 넘겨야 인정.
+        # 장중 실행이 늘어도 경계 근처 왕복으로 알림이 반복되지 않게 함.
+        _buf = 1.0 + cfg.get("zone_hysteresis", 0.03)
+        _bound = {"RED": guard3, "ORANGE": guard2, "AMBER": guard1}.get(_prev_zone)
+        if _bound and ZONE_RANK.get(zone, 0) < ZONE_RANK.get(_prev_zone, 0) \
+                and total_krw < _bound * _buf:
+            zone = _prev_zone   # 아직 개선 인정 안 함
 
     # ── 5.5 봉인 히스토리 기록 (대시보드 미표시) ──
     try:
@@ -319,14 +339,14 @@ def main():
                 tg(f"🔴 심층선 -{_pct}% ({_lv/1e4:,.0f}만) 하회.\n가격 경보 ≠ 매도. 전제 점검 + 시한부 검증 데드라인 확인.")
             elif total_krw > _lv * 1.05 and state.get(f"deep_{_nm}"):
                 state[f"deep_{_nm}"] = False
-        record_history(today, _prices, fx, total_krw, zone)
+        record_history(stamp, _prices, fx, total_krw, zone)
     except Exception as _e:
         print("history/adr/aum skip:", _e)
 
     # ── 6. 횡보 (고점 근처서 60거래일 정체) ──
     runs = state.get("runs_since_peak", 0) + 1
     state["runs_since_peak"] = runs
-    rpd = 2  # cron 하루 2회 가정
+    rpd = cfg.get("runs_per_day", 2)  # cron 실행 횟수 (holdings.json _config에서 설정)
     trading_days = runs / rpd
     sideways_ratio = min(2.0, trading_days / cfg["sideways_days"])
     near_peak = has_price and total_krw >= peak * cfg["sideways_band"]
