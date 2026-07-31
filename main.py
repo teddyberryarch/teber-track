@@ -1,186 +1,82 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-teber-track — 블랙잭 프로젝트 신호등 봇
-- holdings.json 을 읽어 5종목 시세를 가져와 총 평가액 계산
-- 고점 추적 → 이정표 / 3단 방어선 / 횡보 / 본주 -30% / heartbeat 판정
-- index.html 이 읽는 data.json 생성 (현재 평가액은 일부러 미포함, 목표선 금액만)
-- 위험 신호 발생 시에만 텔레그램 알림 (🟢🟡 평상시엔 조용)
+teber-track v5 — 블랙잭 프로젝트 신호등 봇
 
-환경변수(=GitHub Secrets): TG_TOKEN, TG_CHAT_ID
-실행: python main.py   (data.json, state.json 을 repo 루트에 씀)
+역할
+  holdings.json 의 보유 4종 시세를 모아 총 평가액을 구하고,
+  고점 대비 위치로 이정표 / 방어선 / 횡보 / 본주 백스톱을 판정한다.
+  판정 결과는 data.json(대시보드용)과 history.csv(개봉일 차트용)로 남기고,
+  악화 신호가 생겼을 때만 텔레그램으로 알린다.
+
+원칙
+  - 방어선은 매도선이 아니라 검증선이다. 알림은 "확인하라"까지만 한다.
+  - 대시보드에 현재 평가액을 내보내지 않는다. 목표선·방어선 금액만 표시한다.
+  - 각 판정 섹션은 서로 독립이다. 한 곳이 실패해도 나머지는 계속 돈다.
+  - 예외를 조용히 삼키지 않는다. 실패하면 텔레그램으로 알린다.
+
+v5 변경점
+  - 시각 기준을 KST로 통일 (GitHub 러너는 UTC)
+  - history.csv 키를 날짜 → 타임스탬프로 변경 (장중 실행분이 각각 쌓임)
+  - zone 판정에 완충밴드 추가 (경계 왕복 시 알림 반복 방지)
+  - 심층선(4·5차) 재무장을 독립 섹션으로 분리 (기록 실패와 무관하게 항상 동작)
+  - 심층선 회복 시에도 알림 (금액 없이 구간 이동만 통지)
+  - 하루 실행 횟수를 _config 에서 읽음 (횡보 계산이 어긋나지 않도록)
+
+환경변수(GitHub Secrets): TG_TOKEN, TG_CHAT_ID
+출력: data.json, state.json, history.csv (repo 루트)
 """
 
 import os
+import csv
 import json
 import math
 import datetime as dt
 import urllib.request
-import urllib.error
 
 import yfinance as yf
+
+
+# ═════════════════════════════════════════════════════════
+#  상수 / 경로
+# ═════════════════════════════════════════════════════════
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HOLDINGS_PATH = os.path.join(HERE, "holdings.json")
 DATA_PATH = os.path.join(HERE, "data.json")
 STATE_PATH = os.path.join(HERE, "state.json")
+HISTORY_PATH = os.path.join(HERE, "history.csv")
 
 TG_TOKEN = os.environ.get("TG_TOKEN", "").strip()
 TG_CHAT_ID = os.environ.get("TG_CHAT_ID", "").strip()
 
+KST = dt.timezone(dt.timedelta(hours=9))
+
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0 Safari/537.36")
 
+ZONE_RANK = {"GREEN": 0, "SIDEWAYS": 0, "AMBER": 1, "ORANGE": 2, "RED": 3}
 
-# ─────────────────────────────────────────────────────────
-# 시세 가져오기
-# ─────────────────────────────────────────────────────────
-def yf_price(ticker):
-    """yfinance 로 마지막 종가. 실패하면 None."""
-    try:
-        t = yf.Ticker(ticker)
-        # 1차: fast_info
-        try:
-            p = float(t.fast_info["lastPrice"])
-            if p and not math.isnan(p):
-                return p
-        except Exception:
-            pass
-        # 2차: 최근 종가
-        hist = t.history(period="5d")
-        if len(hist) > 0:
-            p = float(hist["Close"].dropna().iloc[-1])
-            if p and not math.isnan(p):
-                return p
-    except Exception as e:
-        print(f"  yf fail {ticker}: {e}")
-    return None
+HOLDING_KEYS = ["hynix_lev", "muu", "snxx", "sndu"]
+
+# 방어선 도달 시 확인할 4문항. 매도 판단이 아니라 전제 점검용.
+AUDIT_CHECKLIST = (
+    "\n\n📋 <b>감사 발동 — 매도 아님, 검증임</b>\n"
+    "① DRAM·NAND 계약가 QoQ — 상승/보합/하락?\n"
+    "② 공급사 재고 주수 — 줄고 있나 늘고 있나?\n"
+    "③ 빅4 캐펙스 가이던스 — 유지·상향 vs 하향?\n"
+    "④ 하닉·마이크론 forward EPS — 상향 중 vs 하향 전환?\n"
+    "→ 4개 전부 초록: 아무것도 안 한다. 계좌도 안 연다.\n"
+    "→ 1개라도 빨강: 매도규칙(EPS 하향/캐펙스 축소) 검토 개시."
+)
 
 
-def naver_etf_price(code):
-    """
-    네이버 모바일 금융 API 폴백.
-    하닉레버(0195S0) 처럼 야후에 아직 안 잡히는 신상 국내 ETF용.
-    https://m.stock.naver.com/api/stock/{code}/basic -> {"closePrice":"25,370",...}
-    """
-    code = code.replace(".KS", "").replace(".KQ", "").strip()
-    url = f"https://m.stock.naver.com/api/stock/{code}/basic"
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": UA})
-        with urllib.request.urlopen(req, timeout=10) as r:
-            j = json.loads(r.read().decode("utf-8"))
-        raw = j.get("closePrice") or j.get("nowVal") or ""
-        raw = str(raw).replace(",", "").strip()
-        if raw:
-            p = float(raw)
-            if p and not math.isnan(p):
-                return p
-    except Exception as e:
-        print(f"  naver fail {code}: {e}")
-    return None
-
-
-def get_price(yf_ticker, ccy):
-    """야후 우선, 국내(.KS/.KQ)면 실패 시 네이버 폴백."""
-    p = yf_price(yf_ticker)
-    if p is not None:
-        return p
-    if ccy == "KRW" and (".KS" in yf_ticker or ".KQ" in yf_ticker):
-        p = naver_etf_price(yf_ticker)
-        if p is not None:
-            print(f"  -> {yf_ticker} 네이버 폴백 성공: {p}")
-            return p
-    return None
-
-
-def yf_recent_high(ticker, period="1mo"):
-    """최근 1개월 장중 고가. 본주 고점 추적을 종가가 아닌 고가 기준으로 (임계 스침 방지)."""
-    try:
-        hist = yf.Ticker(ticker).history(period=period)
-        if len(hist) > 0:
-            h = float(hist["High"].dropna().max())
-            if h and not math.isnan(h):
-                return h
-    except Exception as e:
-        print(f"  yf high fail {ticker}: {e}")
-    return None
-
-
-def realized_vol(ticker="000660.KS", days=60):
-    """하이닉스 60거래일 실현 변동성(연율화 %). 레버 손익분기(≈58%)와 비교용. 실패 시 None."""
-    try:
-        hist = yf.Ticker(ticker).history(period="6mo")["Close"].dropna()
-        if len(hist) < 11:
-            return None
-        days = min(days, len(hist) - 1)
-        closes = list(hist)[-(days + 1):]
-        rets = [math.log(closes[i + 1] / closes[i]) for i in range(len(closes) - 1)]
-        mean = sum(rets) / len(rets)
-        var = sum((r - mean) ** 2 for r in rets) / len(rets)
-        return math.sqrt(var) * math.sqrt(252) * 100
-    except Exception as e:
-        print(f"  vol fail {ticker}: {e}")
-        return None
-
-
-def usdkrw():
-    """USD->KRW 환율. 실패 시 보수적 기본값."""
-    for tk in ("KRW=X", "USDKRW=X"):
-        p = yf_price(tk)
-        if p and p > 500:   # sanity
-            return p
-    print("  환율 실패 -> 기본값 1500 사용")
-    return 1500.0
-
-
-# ─────────────────────────────────────────────────────────
-# 텔레그램
-# ─────────────────────────────────────────────────────────
-
-# ══ v3 패치: 봉인 히스토리 / ADR 괴리율 / AUM 감시 ══════════
-HISTORY_PATH = os.path.join(HERE, "history.csv")
-
-def record_history(stamp, prices, fx, total_krw, zone):
-    """실행 시점 스냅샷을 append. 대시보드엔 안 보임 — 개봉일(2027.6.19)에 차트용.
-    v5: 키를 날짜 → 타임스탬프(KST)로 변경. 장중 여러 번 돌면 각각 별도 행으로 쌓임.
-    같은 타임스탬프 중복 실행 시에만 마지막 값으로 갱신."""
-    import csv
-    cols = ["ts", "date", "hynix_lev", "muu", "snxx", "sndu",
-            "hynix_ud", "micron_ud", "sandisk_ud", "usdkrw", "total_krw", "zone"]
-    rows = {}
-    if os.path.exists(HISTORY_PATH):
-        with open(HISTORY_PATH, newline="", encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                # 구버전(date 키) 파일도 그대로 읽어서 보존
-                k = r.get("ts") or r.get("date")
-                if k:
-                    r.setdefault("ts", k)
-                    r.setdefault("date", k[:10])
-                    rows[k] = r
-    rows[stamp] = {"ts": stamp, "date": stamp[:10],
-                   **{k: (f"{v:.2f}" if isinstance(v, float) else str(v))
-                      for k, v in prices.items()},
-                   "usdkrw": f"{fx:.2f}", "total_krw": f"{total_krw:.0f}", "zone": zone}
-    with open(HISTORY_PATH, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=cols)
-        w.writeheader()
-        for d in sorted(rows):
-            w.writerow({c: rows[d].get(c, "") for c in cols})
-
-
-
-def split_suspect(key, price_now, state):
-    """전 실행 기록 대비 가격 점프가 본주 2x로 설명 안 되면 분할/병합 의심."""
-    prev = state.get(f"lastpx_{key}")
-    state[f"lastpx_{key}"] = price_now
-    if not prev or not price_now:
-        return None
-    ratio = price_now / prev
-    if ratio < 0.55 or ratio > 1.8:  # 하루 -45%/+80%는 2x로도 비정상
-        return ratio
-    return None
+# ═════════════════════════════════════════════════════════
+#  유틸
+# ═════════════════════════════════════════════════════════
 
 def tg(msg):
+    """텔레그램 발송. 미설정이면 콘솔 출력."""
     if not TG_TOKEN or not TG_CHAT_ID:
         print("  [TG 미설정] " + msg.replace("\n", " "))
         return
@@ -190,16 +86,24 @@ def tg(msg):
         "parse_mode": "HTML", "disable_web_page_preview": True,
     }).encode("utf-8")
     try:
-        req = urllib.request.Request(url, data=payload,
-                                     headers={"Content-Type": "application/json"})
+        req = urllib.request.Request(
+            url, data=payload, headers={"Content-Type": "application/json"})
         urllib.request.urlopen(req, timeout=10).read()
     except Exception as e:
         print(f"  TG send fail: {e}")
 
 
-# ─────────────────────────────────────────────────────────
-# 상태 저장
-# ─────────────────────────────────────────────────────────
+def safe(name, fn, *args, **kwargs):
+    """선택 섹션 실행기. 실패해도 전체를 멈추지 않되, 조용히 넘어가지도 않는다."""
+    try:
+        return fn(*args, **kwargs)
+    except Exception as e:
+        print(f"  [{name}] 실패: {type(e).__name__}: {e}")
+        tg(f"⚠️ <b>{name} 단계 오류</b>\n{type(e).__name__}: {e}\n"
+           f"방어선 판정은 정상 동작 중. 로그 확인 필요.")
+        return None
+
+
 def load_state():
     try:
         with open(STATE_PATH, encoding="utf-8") as f:
@@ -221,140 +125,313 @@ def won(n):
     return f"{round(n):,}원"
 
 
-ZONE_RANK = {"GREEN": 0, "SIDEWAYS": 0, "AMBER": 1, "ORANGE": 2, "RED": 3}
+# ═════════════════════════════════════════════════════════
+#  시세
+# ═════════════════════════════════════════════════════════
 
-# 방어선 = 매도선이 아니라 검증선. 도달 시 아래 4문항만 확인한다.
-AUDIT_CHECKLIST = (
-    "\n\n📋 <b>감사 발동 — 매도 아님, 검증임</b>\n"
-    "① DRAM·NAND 계약가 QoQ — 상승/보합/하락?\n"
-    "② 공급사 재고 주수 — 줄고 있나 늘고 있나?\n"
-    "③ 빅4 캐펙스 가이던스 — 유지·상향 vs 하향?\n"
-    "④ 하닉·마이크론 forward EPS — 상향 중 vs 하향 전환?\n"
-    "→ 4개 전부 초록: 아무것도 안 한다. 계좌도 안 연다.\n"
-    "→ 1개라도 빨강: 매도규칙(EPS 하향/캐펙스 축소) 검토 개시."
-)
+def yf_price(ticker):
+    """yfinance 마지막 가격. 실패 시 None."""
+    try:
+        t = yf.Ticker(ticker)
+        try:
+            p = float(t.fast_info["lastPrice"])
+            if p and not math.isnan(p):
+                return p
+        except Exception:
+            pass
+        hist = t.history(period="5d")
+        if len(hist) > 0:
+            p = float(hist["Close"].dropna().iloc[-1])
+            if p and not math.isnan(p):
+                return p
+    except Exception as e:
+        print(f"  yf fail {ticker}: {e}")
+    return None
 
+
+def naver_etf_price(code):
+    """네이버 폴백. 야후에 아직 안 잡히는 신상 국내 ETF용."""
+    code = code.replace(".KS", "").replace(".KQ", "").strip()
+    url = f"https://m.stock.naver.com/api/stock/{code}/basic"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            j = json.loads(r.read().decode("utf-8"))
+        raw = str(j.get("closePrice") or j.get("nowVal") or "").replace(",", "").strip()
+        if raw:
+            p = float(raw)
+            if p and not math.isnan(p):
+                return p
+    except Exception as e:
+        print(f"  naver fail {code}: {e}")
+    return None
+
+
+def get_price(ticker, ccy):
+    """야후 우선, 국내 종목이면 실패 시 네이버 폴백."""
+    p = yf_price(ticker)
+    if p is not None:
+        return p
+    if ccy == "KRW" and (".KS" in ticker or ".KQ" in ticker):
+        p = naver_etf_price(ticker)
+        if p is not None:
+            print(f"  -> {ticker} 네이버 폴백 성공: {p}")
+            return p
+    return None
+
+
+def yf_recent_high(ticker, period="1mo"):
+    """최근 1개월 장중 고가. 본주 고점을 종가가 아닌 고가로 잡아 임계 스침을 막는다."""
+    try:
+        hist = yf.Ticker(ticker).history(period=period)
+        if len(hist) > 0:
+            h = float(hist["High"].dropna().max())
+            if h and not math.isnan(h):
+                return h
+    except Exception as e:
+        print(f"  yf high fail {ticker}: {e}")
+    return None
+
+
+def realized_vol(ticker="000660.KS", days=60):
+    """하이닉스 실현 변동성(연율 %). 레버 손익분기(약 58%)와 비교용."""
+    try:
+        hist = yf.Ticker(ticker).history(period="6mo")["Close"].dropna()
+        if len(hist) < 11:
+            return None
+        days = min(days, len(hist) - 1)
+        closes = list(hist)[-(days + 1):]
+        rets = [math.log(closes[i + 1] / closes[i]) for i in range(len(closes) - 1)]
+        mean = sum(rets) / len(rets)
+        var = sum((r - mean) ** 2 for r in rets) / len(rets)
+        return math.sqrt(var) * math.sqrt(252) * 100
+    except Exception as e:
+        print(f"  vol fail {ticker}: {e}")
+        return None
+
+
+def usdkrw():
+    """USD→KRW. 실패 시 보수적 기본값."""
+    for tk in ("KRW=X", "USDKRW=X"):
+        p = yf_price(tk)
+        if p and p > 500:
+            return p
+    print("  환율 실패 -> 기본값 1500 사용")
+    return 1500.0
+
+
+# ═════════════════════════════════════════════════════════
+#  기록 (history.csv)
+# ═════════════════════════════════════════════════════════
+
+HISTORY_COLS = ["ts", "date", "hynix_lev", "muu", "snxx", "sndu",
+                "hynix_ud", "micron_ud", "sandisk_ud",
+                "usdkrw", "total_krw", "zone"]
+
+
+def record_history(stamp, prices, fx, total_krw, zone):
+    """실행 시점 스냅샷을 누적. 대시보드에는 안 보이고, 개봉일(2027.6.19) 차트용.
+
+    키는 KST 타임스탬프. 하루 여러 번 돌면 각각 별도 행으로 쌓인다.
+    구버전(date 키) 파일도 그대로 읽어 보존한다.
+    """
+    rows = {}
+    if os.path.exists(HISTORY_PATH):
+        with open(HISTORY_PATH, newline="", encoding="utf-8") as f:
+            for r in csv.DictReader(f):
+                k = r.get("ts") or r.get("date")
+                if not k:
+                    continue
+                r.setdefault("ts", k)
+                r.setdefault("date", k[:10])
+                rows[k] = r
+
+    rows[stamp] = {
+        "ts": stamp,
+        "date": stamp[:10],
+        **{k: (f"{v:.2f}" if isinstance(v, float) else str(v)) for k, v in prices.items()},
+        "usdkrw": f"{fx:.2f}",
+        "total_krw": f"{total_krw:.0f}",
+        "zone": zone,
+    }
+
+    with open(HISTORY_PATH, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=HISTORY_COLS)
+        w.writeheader()
+        for k in sorted(rows):
+            w.writerow({c: rows[k].get(c, "") for c in HISTORY_COLS})
+
+
+def split_suspect(key, price_now, state):
+    """전 실행 대비 가격 점프가 2배 레버로 설명 안 되면 분할/병합 의심."""
+    prev = state.get(f"lastpx_{key}")
+    state[f"lastpx_{key}"] = price_now
+    if not prev or not price_now:
+        return None
+    ratio = price_now / prev
+    if ratio < 0.55 or ratio > 1.8:
+        return ratio
+    return None
+
+
+# ═════════════════════════════════════════════════════════
+#  판정 섹션
+# ═════════════════════════════════════════════════════════
+
+def calc_total(H, fx):
+    """보유 4종 평가액 합산. (총액, 결측목록, 대시보드용 보유정보, 가격맵)"""
+    total = 0.0
+    missing = []
+    out = {}
+    prices = {}
+    for key, h in H["holdings"].items():
+        p = get_price(h["yf"], h["ccy"])
+        out[key] = {"label": h["label"], "axis": h["axis"], "shares": h["shares"]}
+        prices[key] = p if p else ""
+        if p is None:
+            missing.append(h["label"])
+            print(f"MISSING {h['label']} ({h['yf']})")
+            continue
+        val = p * h["shares"] * (fx if h["ccy"] == "USD" else 1.0)
+        total += val
+        print(f"OK {h['label']:12s} {p:>14,.2f} {h['ccy']} x{h['shares']} = {won(val)}")
+    return total, missing, out, prices
+
+
+def decide_zone(total, guards, floor, prev_zone, has_price, hysteresis):
+    """구간 판정. 악화는 선 그대로 즉시, 개선은 선을 완충밴드만큼 넘겨야 인정.
+
+    장중 실행이 늘어도 경계 근처 왕복으로 같은 알림이 반복되지 않게 한다.
+    """
+    g1, g2, g3 = guards["g1"], guards["g2"], guards["g3"]
+
+    if not has_price:
+        return prev_zone
+
+    if total <= g3 or total <= floor:
+        zone = "RED"
+    elif total <= g2:
+        zone = "ORANGE"
+    elif total <= g1:
+        zone = "AMBER"
+    else:
+        zone = "GREEN"
+
+    bound = {"RED": g3, "ORANGE": g2, "AMBER": g1}.get(prev_zone)
+    improving = ZONE_RANK.get(zone, 0) < ZONE_RANK.get(prev_zone, 0)
+    if bound and improving and total < bound * (1.0 + hysteresis):
+        return prev_zone   # 아직 개선 인정 안 함
+
+    return zone
+
+
+def update_deep_guards(total, guards, state, has_price):
+    """심층선(4·5차) 발동·재무장. 기록/시세 부가 작업과 독립적으로 항상 실행된다."""
+    if not has_price:
+        return
+    for name, level, pct in [("g4", guards["g4"], 60), ("g5", guards["g5"], 70)]:
+        flag = f"deep_{name}"
+        if total < level and not state.get(flag):
+            state[flag] = True
+            tg(f"🔴 심층선 -{pct}% ({won(level)}) 하회.\n"
+               f"가격 경보 ≠ 매도. 전제 점검 + 시한부 검증 데드라인 확인.")
+        elif total > level * 1.05 and state.get(flag):
+            state[flag] = False
+            tg(f"🟢 심층선 -{pct}% ({won(level)}) 회복 — 경보 재무장.")
+
+
+def check_underlyings(H, cfg, state):
+    """본주 고점 대비 낙폭 감시. 화면에는 발동/대기만, 등락률은 안 내보낸다."""
+    peaks = state.get("underlying_peaks", {})
+    flagged = set(state.get("underlying_flagged", []))
+    threshold = cfg["underlying_peak_drop"]
+
+    for uk, u in H.get("underlyings", {}).items():
+        now = yf_price(u["yf"])
+        if now is None:
+            continue
+        high = yf_recent_high(u["yf"])
+        prev = peaks.get(uk, now)
+        peak = max([prev, now] + ([high] if high else []))
+        peaks[uk] = peak
+        drop = (peak - now) / peak if peak > 0 else 0
+
+        if drop >= threshold and uk not in flagged:
+            flagged.add(uk)
+            tg(f"🔴 <b>본주 급락</b>\n{u['label']} 고점 대비 -{round(drop*100)}%\n"
+               f"레버 등락의 원인은 본주. 전제(슈퍼사이클) 깨졌나만 점검.\n"
+               f"(등락률은 평소 안 봄 — 이건 알림만. 매도 신호 아님)")
+        elif drop < threshold and uk in flagged:
+            flagged.discard(uk)
+
+    state["underlying_peaks"] = peaks
+    state["underlying_flagged"] = sorted(flagged)
+    return [{"label": u["label"], "flagged": uk in flagged}
+            for uk, u in H.get("underlyings", {}).items()]
+
+
+# ═════════════════════════════════════════════════════════
+#  메인
+# ═════════════════════════════════════════════════════════
 
 def main():
-    # GitHub Actions 러너는 UTC → KST(+9)로 변환해서 날짜·시각 기록
-    _now_kst = dt.datetime.utcnow() + dt.timedelta(hours=9)
-    today = _now_kst.date().isoformat()
-    stamp = _now_kst.strftime("%Y-%m-%d %H:%M")
+    now = dt.datetime.now(KST)
+    today = now.date().isoformat()
+    stamp = now.strftime("%Y-%m-%d %H:%M")
+    print(f"=== teber-track v5 @ {stamp} KST ===")
+
     with open(HOLDINGS_PATH, encoding="utf-8") as f:
         H = json.load(f)
     cfg = H["_config"]
     state = load_state()
 
-    # ── 1. 시세 ─────────────────────────────
+    # ── 1. 시세 · 총액 ───────────────────────────────────
     fx = usdkrw()
-    total_krw = 0.0
-    missing = []
-    out_holdings = {}
-    for key, h in H["holdings"].items():
-        price = get_price(h["yf"], h["ccy"])
-        out_holdings[key] = {"label": h["label"], "axis": h["axis"], "shares": h["shares"]}
-        if price is None:
-            missing.append(h["label"])
-            print(f"MISSING {h['label']} ({h['yf']})")
-            continue
-        val = price * h["shares"] * (fx if h["ccy"] == "USD" else 1.0)
-        total_krw += val
-        print(f"OK {h['label']:12s} {price:>14,.2f} {h['ccy']} x{h['shares']} = {won(val)}")
+    total_krw, missing, out_holdings, prices = calc_total(H, fx)
+    has_price = total_krw > 0 and len(missing) < len(H["holdings"])
+    print(f"  합계 = {won(total_krw)}  (환율 {fx:,.1f})")
 
-    # ── 2. 고점 추적 ─────────────────────────
+    # ── 2. 고점 추적 ─────────────────────────────────────
     start = cfg["start_value_krw"]
-    peak = max(state.get("peak_krw", start), total_krw) if total_krw > 0 else state.get("peak_krw", start)
-    peak_changed = peak > state.get("peak_krw", start) + 1
-    if peak_changed or "peak_date" not in state:
+    peak = max(state.get("peak_krw", start), total_krw) if total_krw > 0 \
+        else state.get("peak_krw", start)
+    if peak > state.get("peak_krw", start) + 1 or "peak_date" not in state:
         state["peak_date"] = today
         state["runs_since_peak"] = 0
     state["peak_krw"] = peak
 
-    # ── 3. 이정표 (peak 기준) ────────────────
+    # ── 3. 이정표 ────────────────────────────────────────
     g = cfg["milestone_growth"]
-    step = 0
-    if peak > start:
-        step = int(math.floor(math.log(peak / start) / math.log(1 + g)))
-        step = max(0, step)
+    step = max(0, int(math.floor(math.log(peak / start) / math.log(1 + g)))) if peak > start else 0
     cur_floor = start * (1 + g) ** step
     next_ms = start * (1 + g) ** (step + 1)
-    ms_progress = 0.0
-    if next_ms > cur_floor:
-        ms_progress = max(0.0, min(1.0, (peak - cur_floor) / (next_ms - cur_floor)))
+    ms_progress = max(0.0, min(1.0, (peak - cur_floor) / (next_ms - cur_floor))) \
+        if next_ms > cur_floor else 0.0
     peak_step = max(step, state.get("peak_step", 0))
     state["peak_step"] = peak_step
 
-    # ── 4. 3단 방어선 (peak 대비) ────────────
-    guard1 = peak * (1 - cfg["guard1_drop"])
-    guard2 = peak * (1 - cfg["guard2_drop"])
-    guard3 = peak * (1 - cfg["guard3_drop"])
-    guard4 = peak * 0.4   # -60%
-    guard5 = peak * 0.3   # -70%
+    # ── 4. 방어선 (고점 대비) ────────────────────────────
+    guards = {
+        "g1": peak * (1 - cfg["guard1_drop"]),   # -25%
+        "g2": peak * (1 - cfg["guard2_drop"]),   # -40%
+        "g3": peak * (1 - cfg["guard3_drop"]),   # -50%
+        "g4": peak * 0.4,                        # -60%
+        "g5": peak * 0.3,                        # -70%
+    }
     floor = cfg["checkline_floor_krw"]
 
-    # ── 5. zone 판정 ─────────────────────────
-    has_price = total_krw > 0 and len(missing) < len(H["holdings"])
-    _prev_zone = state.get("last_zone", "GREEN")
-    if not has_price:
-        zone = _prev_zone   # 시세 다 빠지면 직전 유지
-    else:
-        if total_krw <= guard3 or total_krw <= floor:
-            zone = "RED"
-        elif total_krw <= guard2:
-            zone = "ORANGE"
-        elif total_krw <= guard1:
-            zone = "AMBER"
-        else:
-            zone = "GREEN"
-        # ── 완충밴드(이력현상) ──
-        # 악화는 선 그대로 즉시 반영. 개선은 선을 3% 넘겨야 인정.
-        # 장중 실행이 늘어도 경계 근처 왕복으로 알림이 반복되지 않게 함.
-        _buf = 1.0 + cfg.get("zone_hysteresis", 0.03)
-        _bound = {"RED": guard3, "ORANGE": guard2, "AMBER": guard1}.get(_prev_zone)
-        if _bound and ZONE_RANK.get(zone, 0) < ZONE_RANK.get(_prev_zone, 0) \
-                and total_krw < _bound * _buf:
-            zone = _prev_zone   # 아직 개선 인정 안 함
+    # ── 5. 구간 판정 ─────────────────────────────────────
+    prev_zone = state.get("last_zone", "GREEN")
+    zone = decide_zone(total_krw, guards, floor, prev_zone, has_price,
+                       cfg.get("zone_hysteresis", 0.03))
 
-    # ── 5.5 봉인 히스토리 기록 (대시보드 미표시) ──
-    # v5: 심층선 재무장은 이 try 밖으로 분리. 가격 조회/기록이 실패해도
-    #     방어선 상태는 항상 갱신되도록 함.
-    try:
-        _prices = {}
-        for _k in ["hynix_lev", "muu", "snxx", "sndu"]:
-            _h = H["holdings"].get(_k)
-            _p = get_price(_h["yf"], _h["ccy"]) if _h else None
-            _prices[_k] = _p if _p else ""
-        for _k, _u in [("hynix_ud", "000660.KS"), ("micron_ud", "MU"), ("sandisk_ud", "SNDK")]:
-            _p = yf_price(_u)
-            _prices[_k] = _p if _p else ""
-        for _k in ["hynix_lev", "muu", "snxx", "sndu"]:
-            _r = split_suspect(_k, _prices.get(_k) or 0, state)
-            if _r:
-                _lbl = H["holdings"][_k]["label"]
-                state["split_warn"] = f"{_lbl} x{_r:.2f}"
-                tg(f"⚠️ {_lbl} 가격 점프 x{_r:.2f} — 액면분할/병합 의심!\n"
-                   f"holdings.json 주식수 확인 필요 (분할이면 수량도 곱해야 함).\n"
-                   f"확인 전까지 총액·방어선 판정 왜곡될 수 있음.")
-        record_history(stamp, _prices, fx, total_krw, zone)
-    except Exception as _e:
-        print("history/split skip:", _e)
-        tg(f"⚠️ 기록/분할감지 단계 오류 — {type(_e).__name__}: {_e}\n"
-           f"방어선 판정은 정상 동작 중. history.csv 확인 필요.")
+    # ── 6. 심층선 발동·재무장 (독립 실행) ────────────────
+    update_deep_guards(total_krw, guards, state, has_price)
 
-    # ── 5.6 심층선(4·5차) 발동/재무장 — try 밖, 항상 실행 ──
-    if has_price:
-        for _nm, _lv, _pct in [("g4", guard4, 60), ("g5", guard5, 70)]:
-            if total_krw < _lv and not state.get(f"deep_{_nm}"):
-                state[f"deep_{_nm}"] = True
-                tg(f"🔴 심층선 -{_pct}% ({_lv/1e4:,.0f}만) 하회.\n가격 경보 ≠ 매도. 전제 점검 + 시한부 검증 데드라인 확인.")
-            elif total_krw > _lv * 1.05 and state.get(f"deep_{_nm}"):
-                state[f"deep_{_nm}"] = False
-                tg(f"🟢 심층선 -{_pct}% ({_lv/1e4:,.0f}만) 회복 — 경보 재무장.")
-
-    # ── 6. 횡보 (고점 근처서 60거래일 정체) ──
+    # ── 7. 횡보 (고점 근처 정체) ─────────────────────────
     runs = state.get("runs_since_peak", 0) + 1
     state["runs_since_peak"] = runs
-    rpd = cfg.get("runs_per_day", 2)  # cron 실행 횟수 (holdings.json _config에서 설정)
+    rpd = cfg.get("runs_per_day", 2)
     trading_days = runs / rpd
     sideways_ratio = min(2.0, trading_days / cfg["sideways_days"])
     near_peak = has_price and total_krw >= peak * cfg["sideways_band"]
@@ -362,39 +439,31 @@ def main():
         zone = "SIDEWAYS"
     days_since_peak = int(round(trading_days))
 
-    # ── 7. 본주 -30% 감시 (화면 X, 알림만) ───
-    und_peaks = state.get("underlying_peaks", {})
-    und_flagged = set(state.get("underlying_flagged", []))
-    for uk, u in H.get("underlyings", {}).items():
-        up = yf_price(u["yf"])
-        if up is None:
-            continue
-        uhigh = yf_recent_high(u["yf"])
-        prev = und_peaks.get(uk, up)
-        upeak = max([prev, up] + ([uhigh] if uhigh else []))
-        und_peaks[uk] = upeak
-        drop = (upeak - up) / upeak if upeak > 0 else 0
-        if drop >= cfg["underlying_peak_drop"] and uk not in und_flagged:
-            und_flagged.add(uk)
-            tg(f"🔴 <b>본주 급락</b>\n{u['label']} 고점 대비 -{round(drop*100)}%\n"
-               f"레버 등락의 원인은 본주. 전제(슈퍼사이클) 깨졌나만 점검.\n"
-               f"(등락률은 평소 안 봄 — 이건 알림만. 매도 신호 아님)")
-        elif drop < cfg["underlying_peak_drop"] and uk in und_flagged:
-            und_flagged.discard(uk)   # -24% 아래로 회복하면 플래그 해제
-    state["underlying_peaks"] = und_peaks
-    state["underlying_flagged"] = sorted(und_flagged)
+    # ── 8. 본주 백스톱 ───────────────────────────────────
+    und_watch = safe("본주 감시", check_underlyings, H, cfg, state) or []
 
-    # 본주 백스톱 표시용 (임계치 + 종목별 발동/대기 — 실시간 등락률은 안 내보냄)
-    und_drop_pct = round(cfg["underlying_peak_drop"] * 100)
-    und_watch = [{"label": u["label"], "flagged": uk in und_flagged}
-                 for uk, u in H.get("underlyings", {}).items()]
+    # ── 9. 부가 기록 (실패해도 위 판정에 영향 없음) ──────
+    def _record():
+        for key, tk in [("hynix_ud", "000660.KS"), ("micron_ud", "MU"), ("sandisk_ud", "SNDK")]:
+            p = yf_price(tk)
+            prices[key] = p if p else ""
+        for key in HOLDING_KEYS:
+            r = split_suspect(key, prices.get(key) or 0, state)
+            if r:
+                label = H["holdings"][key]["label"]
+                state["split_warn"] = f"{label} x{r:.2f}"
+                tg(f"⚠️ {label} 가격 점프 x{r:.2f} — 액면분할/병합 의심!\n"
+                   f"holdings.json 주식수 확인 필요 (분할이면 수량도 곱해야 함).\n"
+                   f"확인 전까지 총액·방어선 판정 왜곡될 수 있음.")
+        record_history(stamp, prices, fx, total_krw, zone)
 
-    # ── 8. 변동성 게이지 (하닉 60거래일 실현 σ, 레버 분기점 58%와 비교) ──
-    vol = realized_vol()
+    safe("히스토리 기록", _record)
+
+    vol = safe("변동성 계산", realized_vol)
     if vol:
         print(f"  σ60d(하닉) = {vol:.1f}% (레버 분기점 ~58%)")
 
-    # ── 8-1. data.json (현재 평가액 미포함) ────
+    # ── 10. data.json (현재 평가액은 일부러 미포함) ──────
     data = {
         "updated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="minutes"),
         "zone": zone,
@@ -402,21 +471,21 @@ def main():
         "peak_step": peak_step,
         "ms_progress": round(ms_progress, 4),
         "next_ms_krw": round(next_ms),
-        "guard1_krw": round(guard1),
-        "guard2_krw": round(guard2),
-        "guard3_krw": round(guard3),
-        "guard4_krw": round(guard4),
-        "guard5_krw": round(guard5),
+        "guard1_krw": round(guards["g1"]),
+        "guard2_krw": round(guards["g2"]),
+        "guard3_krw": round(guards["g3"]),
+        "guard4_krw": round(guards["g4"]),
+        "guard5_krw": round(guards["g5"]),
         "deep_g4": bool(state.get("deep_g4")),
         "deep_g5": bool(state.get("deep_g5")),
         "sideways_ratio": round(sideways_ratio, 3),
         "sideways_months": 3,
         "days_since_peak": days_since_peak,
         "holdings": out_holdings,
-        "floor_krw": cfg["checkline_floor_krw"],
-        "floor_ok": bool(total_krw >= cfg["checkline_floor_krw"]),
+        "floor_krw": floor,
+        "floor_ok": bool(total_krw >= floor),
         "split_warn": state.get("split_warn"),
-        "underlying_drop_pct": und_drop_pct,
+        "underlying_drop_pct": round(cfg["underlying_peak_drop"] * 100),
         "underlying_watch": und_watch,
         "missing": missing,
         "vol_pct": round(vol, 1) if vol else None,
@@ -425,45 +494,43 @@ def main():
     with open(DATA_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-    # ── 9. 알림 (zone 악화 / 이정표 / heartbeat) ──
-    last_zone = state.get("last_zone", "GREEN")
-    if has_price and ZONE_RANK.get(zone, 0) > ZONE_RANK.get(last_zone, 0):
-        names = {"AMBER": "🟡 1차 방어선 −25% 하회", "ORANGE": "🟠 2차 방어선 −40% 하회",
-                 "RED": "🔴 3차 방어선 −50% 하회", "SIDEWAYS": "🟡 횡보 — decay 점검"}
-        base = (f"{names.get(zone, zone)}\n가격 경보 ≠ 매도 신호. 방어선의 기능은 검증 강제까지.\n"
-                f"방어선: {won(guard1)} / {won(guard2)} / {won(guard3)}")
-        base += AUDIT_CHECKLIST
+    # ── 11. 알림 ─────────────────────────────────────────
+    if has_price and ZONE_RANK.get(zone, 0) > ZONE_RANK.get(prev_zone, 0):
+        names = {"AMBER": "🟡 1차 방어선 −25% 하회",
+                 "ORANGE": "🟠 2차 방어선 −40% 하회",
+                 "RED": "🔴 3차 방어선 −50% 하회",
+                 "SIDEWAYS": "🟡 횡보 — decay 점검"}
+        msg = (f"{names.get(zone, zone)}\n"
+               f"가격 경보 ≠ 매도 신호. 방어선의 기능은 검증 강제까지.\n"
+               f"방어선: {won(guards['g1'])} / {won(guards['g2'])} / {won(guards['g3'])}")
+        msg += AUDIT_CHECKLIST
         if zone == "RED":
-            base += ("\n\n🔴 <b>−50% 특칙 — 시한부 검증</b>\n"
-                     "여기서부턴 가격 자체가 약한 증거(펀더멘털 멀쩡한데 반토막은 드묾).\n"
-                     "체크리스트 전부 초록이어도: 다음 분기 실적 발표를 데드라인으로 지정.\n"
-                     "가이던스 꺾이면 → 봉인 해제 검토 (청산 대신 <b>본주 1배 전환</b> 우선).\n"
-                     "안 꺾이면 → 홀드 지속. '가격이 틀렸다'에 무기한 베팅하지 않는다.")
-        tg(base)
-    if has_price and zone == "SIDEWAYS" and last_zone != "SIDEWAYS":
+            msg += ("\n\n🔴 <b>−50% 특칙 — 시한부 검증</b>\n"
+                    "여기서부턴 가격 자체가 약한 증거(펀더멘털 멀쩡한데 반토막은 드묾).\n"
+                    "체크리스트 전부 초록이어도: 다음 분기 실적 발표를 데드라인으로 지정.\n"
+                    "가이던스 꺾이면 → 봉인 해제 검토 (청산 대신 <b>본주 1배 전환</b> 우선).\n"
+                    "안 꺾이면 → 홀드 지속. '가격이 틀렸다'에 무기한 베팅하지 않는다.")
+        tg(msg)
+
+    if has_price and zone == "SIDEWAYS" and prev_zone != "SIDEWAYS":
         tg(f"🟡 <b>횡보 감지</b>\n고점 후 약 {days_since_peak}거래일 정체. 추세 살아있나 점검.")
+
     state["last_zone"] = zone
 
-    # 이정표 갱신 알림
     if peak_step > state.get("last_alerted_step", 0):
         state["last_alerted_step"] = peak_step
         tg(f"🚀 <b>{peak_step}단계 이정표 도달</b>\n방어선도 상향됨. 다음: {won(next_ms)}")
 
-    # heartbeat (N회마다 1회)
+    # heartbeat — N회마다 1회, 살아있음만 알림
     rc = state.get("run_count", 0) + 1
     state["run_count"] = rc
-    if rc % cfg["heartbeat_every_runs"] == 0:
-        miss_txt = f" · 시세누락: {', '.join(missing)}" if missing else ""
-        vol_txt = f"\nσ(하닉 60d) {vol:.0f}% — 레버 분기점 58% ({'위험권' if vol >= 58 else '우호권'})" if vol else ""
-        tg(f"🤖 봇 정상 (heartbeat){miss_txt}\nzone={zone} · {peak_step}단계{vol_txt}\n(봉인 히스토리 기록 중)")
+    if rc % cfg.get("heartbeat_every_runs", 14) == 0:
+        tg(f"🟢 <b>봇 정상</b> — {zone} 유지 중.\n"
+           f"다음 이정표 {won(next_ms)} / 방어선 {won(guards['g1'])}·{won(guards['g2'])}·{won(guards['g3'])}")
 
     save_state(state)
-
-    # ── 10. 로그 (Run 직후 이 줄 확인) ───────
-    print("=" * 50)
-    print(f"total={won(total_krw)} ({round(total_krw):,}) | zone={zone} | "
-          f"step={step}/{peak_step} | missing={missing} | fx={fx:.1f}")
-    print("=" * 50)
+    print(f"  zone={zone} (직전 {prev_zone}) / step={step} / 결측 {missing}")
+    print("=== done ===")
 
 
 if __name__ == "__main__":
