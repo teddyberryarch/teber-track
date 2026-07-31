@@ -316,6 +316,8 @@ def main():
             zone = _prev_zone   # 아직 개선 인정 안 함
 
     # ── 5.5 봉인 히스토리 기록 (대시보드 미표시) ──
+    # v5: 심층선 재무장은 이 try 밖으로 분리. 가격 조회/기록이 실패해도
+    #     방어선 상태는 항상 갱신되도록 함.
     try:
         _prices = {}
         for _k in ["hynix_lev", "muu", "snxx", "sndu"]:
@@ -333,15 +335,21 @@ def main():
                 tg(f"⚠️ {_lbl} 가격 점프 x{_r:.2f} — 액면분할/병합 의심!\n"
                    f"holdings.json 주식수 확인 필요 (분할이면 수량도 곱해야 함).\n"
                    f"확인 전까지 총액·방어선 판정 왜곡될 수 있음.")
+        record_history(stamp, _prices, fx, total_krw, zone)
+    except Exception as _e:
+        print("history/split skip:", _e)
+        tg(f"⚠️ 기록/분할감지 단계 오류 — {type(_e).__name__}: {_e}\n"
+           f"방어선 판정은 정상 동작 중. history.csv 확인 필요.")
+
+    # ── 5.6 심층선(4·5차) 발동/재무장 — try 밖, 항상 실행 ──
+    if has_price:
         for _nm, _lv, _pct in [("g4", guard4, 60), ("g5", guard5, 70)]:
             if total_krw < _lv and not state.get(f"deep_{_nm}"):
                 state[f"deep_{_nm}"] = True
                 tg(f"🔴 심층선 -{_pct}% ({_lv/1e4:,.0f}만) 하회.\n가격 경보 ≠ 매도. 전제 점검 + 시한부 검증 데드라인 확인.")
             elif total_krw > _lv * 1.05 and state.get(f"deep_{_nm}"):
                 state[f"deep_{_nm}"] = False
-        record_history(stamp, _prices, fx, total_krw, zone)
-    except Exception as _e:
-        print("history/adr/aum skip:", _e)
+                tg(f"🟢 심층선 -{_pct}% ({_lv/1e4:,.0f}만) 회복 — 경보 재무장.")
 
     # ── 6. 횡보 (고점 근처서 60거래일 정체) ──
     runs = state.get("runs_since_peak", 0) + 1
