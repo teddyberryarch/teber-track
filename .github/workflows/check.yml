@@ -2,11 +2,14 @@ name: teber-track
 
 on:
   schedule:
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    # 종가 기준 하루 2회
+    #  - UTC 07:00 = KST 16:00 → 국장 종가 확정 후 (15:30 마감 +30분)
+    #  - UTC 22:00 = KST 07:00 → 미장 종가 확정 후 (서머타임 무관)
+    - cron: '0 7,22 * * *'
+  workflow_dispatch:            # 수동 실행 버튼
 
 permissions:
-  contents: write
+  contents: write               # state.json/data.json/history.csv 커밋용
 
 concurrency:
   group: teber-track
@@ -31,10 +34,11 @@ jobs:
           TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
         run: python main.py
 
-      - name: Commit state & data
+      - name: Commit state & data & history
         run: |
           git config user.name "teber-track-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add -A state.json data.json history.csv || true
+          git add -A state.json data.json || true
+          git add -A history.csv || true
           git commit -m "update [skip ci]" || echo "no changes"
           git push || echo "nothing to push"
