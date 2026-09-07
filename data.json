@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-06T23:41+00:00",
+  "updated": "2026-09-07T05:54+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -12,7 +12,7 @@
   "guard5_krw": 47446282,
   "deep_g4": true,
   "deep_g5": false,
-  "sideways_ratio": 1.114,
+  "sideways_ratio": 1.117,
   "sideways_months": 3,
   "days_since_peak": 67,
   "holdings": {
@@ -38,7 +38,7 @@
     }
   },
   "floor_krw": 60000000,
-  "floor_ok": false,
+  "floor_ok": true,
   "split_warn": null,
   "underlying_drop_pct": 25,
   "underlying_watch": [
@@ -56,6 +56,6 @@
     }
   ],
   "missing": [],
-  "vol_pct": 119.9,
+  "vol_pct": 120.7,
   "vol_breakeven_pct": 58
 }
