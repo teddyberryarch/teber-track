@@ -1,6 +1,6 @@
 {
   "start_value": 132603921,
-  "run_count": 449,
+  "run_count": 450,
   "peak": 142953943.61339343,
   "peak_run": 1,
   "last_step": 0,
@@ -16,7 +16,7 @@
     "sandisk": 0
   },
   "peak_date": "2026-06-25",
-  "runs_since_peak": 441,
+  "runs_since_peak": 442,
   "peak_krw": 158154272.18189323,
   "peak_step": 0,
   "underlying_peaks": {
@@ -30,9 +30,9 @@
     "sandisk"
   ],
   "lastpx_hynix_lev": 9050.0,
-  "lastpx_muu": 28.649999618530273,
-  "lastpx_snxx": 13.545000076293945,
-  "lastpx_sndu": 20.959999084472656,
+  "lastpx_muu": 28.27,
+  "lastpx_snxx": 13.13,
+  "lastpx_sndu": 20.37,
   "deep_g4": true,
   "deep_g5": false
 }
