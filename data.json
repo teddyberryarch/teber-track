@@ -1,5 +1,5 @@
 {
-  "updated": "2026-09-28T06:36+00:00",
+  "updated": "2026-09-28T15:14+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -10,11 +10,11 @@
   "guard3_krw": 79077136,
   "guard4_krw": 63261709,
   "guard5_krw": 47446282,
-  "deep_g4": false,
+  "deep_g4": true,
   "deep_g5": false,
-  "sideways_ratio": 1.356,
+  "sideways_ratio": 1.358,
   "sideways_months": 3,
-  "days_since_peak": 81,
+  "days_since_peak": 82,
   "holdings": {
     "muu": {
       "label": "MUU",
@@ -38,7 +38,7 @@
     }
   },
   "floor_krw": 60000000,
-  "floor_ok": true,
+  "floor_ok": false,
   "split_warn": null,
   "underlying_drop_pct": 25,
   "underlying_watch": [
@@ -52,10 +52,10 @@
     },
     {
       "label": "샌디스크",
-      "flagged": false
+      "flagged": true
     }
   ],
   "missing": [],
-  "vol_pct": 113.2,
+  "vol_pct": 113.3,
   "vol_breakeven_pct": 58
 }
