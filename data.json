@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-01T10:50+00:00",
+  "updated": "2026-10-01T20:16+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -12,7 +12,7 @@
   "guard5_krw": 47446282,
   "deep_g4": true,
   "deep_g5": false,
-  "sideways_ratio": 1.383,
+  "sideways_ratio": 1.386,
   "sideways_months": 3,
   "days_since_peak": 83,
   "holdings": {
@@ -52,7 +52,7 @@
     },
     {
       "label": "샌디스크",
-      "flagged": true
+      "flagged": false
     }
   ],
   "missing": [],
