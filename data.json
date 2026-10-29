@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-29T10:48+00:00",
+  "updated": "2026-10-29T20:08+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -12,7 +12,7 @@
   "guard5_krw": 47446282,
   "deep_g4": true,
   "deep_g5": true,
-  "sideways_ratio": 1.658,
+  "sideways_ratio": 1.661,
   "sideways_months": 3,
   "days_since_peak": 100,
   "holdings": {
@@ -48,7 +48,7 @@
     },
     {
       "label": "마이크론",
-      "flagged": false
+      "flagged": true
     },
     {
       "label": "샌디스크",
