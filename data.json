@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-18T22:31+00:00",
+  "updated": "2026-11-19T08:34+00:00",
   "zone": "RED",
   "step": 0,
   "peak_step": 0,
@@ -12,7 +12,7 @@
   "guard5_krw": 47446282,
   "deep_g4": true,
   "deep_g5": true,
-  "sideways_ratio": 1.817,
+  "sideways_ratio": 1.819,
   "sideways_months": 3,
   "days_since_peak": 109,
   "holdings": {
@@ -56,6 +56,6 @@
     }
   ],
   "missing": [],
-  "vol_pct": 74.1,
+  "vol_pct": 74.3,
   "vol_breakeven_pct": 58
 }
